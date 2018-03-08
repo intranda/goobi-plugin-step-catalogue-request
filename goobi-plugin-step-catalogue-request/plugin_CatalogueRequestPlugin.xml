@@ -5,13 +5,15 @@
 		<project>*</project>
 		<step>*</step>
 		
-		<!-- which catalogue to use (GBV, Wiener ...) -->
+		<!-- which catalogue to use (GBV, Wiener, CBL Adlib ...) -->
 		<catalogue>Wiener</catalogue>
 		<!-- which identifier to use for the catalogue request -->
 		<catalogueIdentifier>$(meta.CatalogIDDigital)</catalogueIdentifier>
-		<!-- define if existring structure subelements shall be kept, if possible -->
+		<!-- define if existing structure subelements shall be kept (true), 
+			otherwise a complete new mets file is created and overwrites the existing one (false) -->
 		<mergeRecords>true</mergeRecords>
-		<!-- don't overwrite these fields with new data (metadatatypes from ruleset) -->
+		<!-- if records shall be merged: which existing fields shall not be replace with new values? 
+			(use the metadatatypes from ruleset) -->
 		<skipField>TitleDocMain</skipField>
 		<skipField>CatalogueIDDigital</skipField>
 		<skipField>DocLanguage</skipField>

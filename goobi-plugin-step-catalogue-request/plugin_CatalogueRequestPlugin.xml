@@ -1,0 +1,19 @@
+<config_plugin>
+
+	<config>
+		<!-- which projects to use for (can be more then one, otherwise use *) -->
+		<project>*</project>
+		<step>*</step>
+		
+		<!-- which catalogue to use (GBV, Wiener ...) -->
+		<catalogue>Wiener</catalogue>
+		<!-- which identifier to use for the catalogue request -->
+		<catalogueIdentifier>$(meta.CatalogIDDigital)</catalogueIdentifier>
+		<!-- define if existring structure subelements shall be kept, if possible -->
+		<mergeRecords>true</mergeRecords>
+		<!-- don't overwrite these fields with new data (metadatatypes from ruleset) -->
+		<skipField>TitleDocMain</skipField>
+		<skipField>CatalogueIDDigital</skipField>
+	</config>	
+
+</config_plugin>

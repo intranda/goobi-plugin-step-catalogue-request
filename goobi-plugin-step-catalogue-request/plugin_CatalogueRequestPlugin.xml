@@ -14,6 +14,7 @@
 		<!-- don't overwrite these fields with new data (metadatatypes from ruleset) -->
 		<skipField>TitleDocMain</skipField>
 		<skipField>CatalogueIDDigital</skipField>
+		<skipField>DocLanguage</skipField>
 	</config>	
 
 </config_plugin>

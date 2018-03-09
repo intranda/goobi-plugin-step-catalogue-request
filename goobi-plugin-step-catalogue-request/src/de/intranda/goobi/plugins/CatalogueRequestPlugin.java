@@ -172,10 +172,9 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         this.returnPath = returnPath;
 
         String projectName = step.getProzess().getProjekt().getTitel();
-		XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(this);
+		XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
 		xmlConfig.setExpressionEngine(new XPathExpressionEngine());
-		xmlConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
-
+		
 		SubnodeConfiguration myconfig = null;
 
 		// order of configuration is:

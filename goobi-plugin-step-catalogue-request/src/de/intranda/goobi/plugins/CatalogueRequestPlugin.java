@@ -155,11 +155,13 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 }
 				
 				// then write the updated old file format
-				ffOld.write(p.getMetadataFilePath());
+				// ffOld.write(p.getMetadataFilePath());
+				p.writeMetadataFile(ffOld);
 				
 			} else {
 				// just write the new one and don't merge any data
-				ffNew.write(p.getMetadataFilePath());
+				// ffNew.write(p.getMetadataFilePath());
+				p.writeMetadataFile(ffNew);
 			}
 		} catch (Exception e) {
 			log.error("Exception while writing the updated METS file into the file system", e);

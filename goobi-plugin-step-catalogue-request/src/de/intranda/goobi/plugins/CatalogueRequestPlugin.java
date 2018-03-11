@@ -33,6 +33,7 @@ import ugh.dl.DocStruct;
 import ugh.dl.Fileformat;
 import ugh.dl.Metadata;
 import ugh.dl.MetadataType;
+import ugh.dl.Person;
 import ugh.dl.Prefs;
 
 @PluginImplementation
@@ -111,23 +112,47 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 					topstructNew = topstructNew.getAllChildren().get(0);
 				}
 				
-				// then run through all new metadata and check if these should replace the old ones
-				// if yes remove the old ones from the old fileformat
-				for (Metadata md : topstructNew.getAllMetadata()) {
-					if (!configSkipFields.contains(md.getType().getName())) {
-						List<? extends Metadata> remove = topstructOld.getAllMetadataByType(md.getType());
-						for (Metadata mdRm : remove) {
-							topstructOld.removeMetadata(mdRm);
-						}
-					}
-				}
-				
-				// now add the new metadata to the old topstruct
-				for (Metadata md : topstructNew.getAllMetadata()) {
-					if (!configSkipFields.contains(md.getType().getName())) {
-						topstructOld.addMetadata(md);
-					}
-				}
+				// then run through all new metadata and check if these should
+                // replace the old ones
+                // if yes remove the old ones from the old fileformat
+                if (topstructNew.getAllMetadata() != null) {
+                    for (Metadata md : topstructNew.getAllMetadata()) {
+                        if (!configSkipFields.contains(md.getType().getName())) {
+                            List<? extends Metadata> remove = topstructOld.getAllMetadataByType(md.getType());
+                            if (remove != null) {
+                                for (Metadata mdRm : remove) {
+                                    topstructOld.removeMetadata(mdRm);
+                                }
+                            }
+                        }
+                    }
+                    // now add the new metadata to the old topstruct
+                    for (Metadata md : topstructNew.getAllMetadata()) {
+                        if (!configSkipFields.contains(md.getType().getName())) {
+                            topstructOld.addMetadata(md);
+                        }
+                    }
+                }
+
+                // now do the same with persons
+                if (topstructNew.getAllPersons() != null) {
+                    for (Person pd : topstructNew.getAllPersons()) {
+                        if (!configSkipFields.contains(pd.getType().getName())) {
+                            List<? extends Person> remove = topstructOld.getAllPersonsByType(pd.getType());
+                            if (remove != null) {
+                                for (Person pdRm : remove) {
+                                    topstructOld.removePerson(pdRm);
+                                }
+                            }
+                        }
+                    }
+                    // now add the new persons to the old topstruct
+                    for (Person pd : topstructNew.getAllPersons()) {
+                        if (!configSkipFields.contains(pd.getType().getName())) {
+                            topstructOld.addPerson(pd);
+                        }
+                    }
+                }
 				
 				// then write the updated old file format
 				ffOld.write(p.getMetadataFilePath());

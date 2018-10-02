@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
-import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.goobi.beans.Process;
 import org.goobi.beans.Step;
@@ -21,7 +20,6 @@ import org.goobi.production.plugin.interfaces.IStepPluginVersion2;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.VariableReplacer;
-import de.sub.goobi.helper.exceptions.ImportPluginException;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
 import de.unigoettingen.sub.search.opac.ConfigOpacCatalogue;
 import lombok.Data;
@@ -32,7 +30,7 @@ import ugh.dl.DigitalDocument;
 import ugh.dl.DocStruct;
 import ugh.dl.Fileformat;
 import ugh.dl.Metadata;
-import ugh.dl.MetadataType;
+import ugh.dl.MetadataGroup;
 import ugh.dl.Person;
 import ugh.dl.Prefs;
 
@@ -49,70 +47,70 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     private String pagePath = "";
     private Step step;
     private String returnPath;
-    
+
     private String configCatalogue = "";
     private String configCatalogueId = "";
     private boolean configMergeRecords = false;
     private List<String> configSkipFields = null;
-    
-    /** 
+
+    /**
      * run this plugin and execute the catalogue update
      */
     @Override
     public PluginReturnValue run() {
-    		log.debug("Starting catalogue request using catalogue: " + configCatalogue + " with identifier field " + configCatalogueId);
-    		
-    		// first read the original METS file for the process
-    		Fileformat ffOld = null;
-    		DigitalDocument dd = null;
+        log.debug("Starting catalogue request using catalogue: " + configCatalogue + " with identifier field " + configCatalogueId);
+
+        // first read the original METS file for the process
+        Fileformat ffOld = null;
+        DigitalDocument dd = null;
         Process p = step.getProzess();
         Prefs prefs = p.getRegelsatz().getPreferences();
         DocStruct topstructOld = null;
         try {
-        		ffOld = p.readMetadataFile();
+            ffOld = p.readMetadataFile();
             if (ffOld == null) {
-                	log.error("Metadata file is not readable for process with ID " + step.getProcessId());
-                	Helper.setFehlerMeldung("Metadata file is not readable for process with ID " + step.getProcessId());
-                	return PluginReturnValue.ERROR;
+                log.error("Metadata file is not readable for process with ID " + step.getProcessId());
+                Helper.setFehlerMeldung("Metadata file is not readable for process with ID " + step.getProcessId());
+                return PluginReturnValue.ERROR;
             }
             dd = ffOld.getDigitalDocument();
             topstructOld = ffOld.getDigitalDocument().getLogicalDocStruct();
-			if (topstructOld.getType().isAnchor()) {
-				topstructOld = topstructOld.getAllChildren().get(0);
-			}
+            if (topstructOld.getType().isAnchor()) {
+                topstructOld = topstructOld.getAllChildren().get(0);
+            }
         } catch (Exception e) {
-        		log.error("An exception occurred while reading the metadata file for process with ID " + step.getProcessId(), e);
-        		Helper.setFehlerMeldung("An exception occurred while reading the metadata file for process with ID " + step.getProcessId(), e);
-            	return PluginReturnValue.ERROR;
+            log.error("An exception occurred while reading the metadata file for process with ID " + step.getProcessId(), e);
+            Helper.setFehlerMeldung("An exception occurred while reading the metadata file for process with ID " + step.getProcessId(), e);
+            return PluginReturnValue.ERROR;
         }
-        
+
         // create a VariableReplacer to transform the identifier field from the configuration into a real value
         VariableReplacer replacer = new VariableReplacer(dd, prefs, step.getProzess(), step);
         String catalogueId = replacer.replace(configCatalogueId);
-    		log.debug("Using this value for the catalogue request: " + catalogueId);
-    		
-    		// request the wished catalogue with the correct identifier
-    		Fileformat ffNew = null;
-		try {
-			ConfigOpacCatalogue coc = ConfigOpac.getInstance().getCatalogueByName(configCatalogue);
-			IOpacPlugin myImportOpac = (IOpacPlugin) PluginLoader.getPluginByTitle(PluginType.Opac, coc.getOpacType());
-			ffNew = myImportOpac.search("12", catalogueId, coc, prefs);
-		} catch (Exception e) {
-			log.error("Exception while requesting the catalogue", e);
-			Helper.setFehlerMeldung("Exception while requesting the catalogue", e);
-			return PluginReturnValue.ERROR;
-		}
-		
-		// if structure subelements shall be kept, merge old and new fileformat, otherwise just write the new one
-		try {
-			if (configMergeRecords) {
-				// first load logical topstruct or first child
-				DocStruct topstructNew = ffNew.getDigitalDocument().getLogicalDocStruct();
-				if (topstructNew.getType().isAnchor()) {
-					topstructNew = topstructNew.getAllChildren().get(0);
-				}
-				
-				// then run through all new metadata and check if these should
+        log.debug("Using this value for the catalogue request: " + catalogueId);
+
+        // request the wished catalogue with the correct identifier
+        Fileformat ffNew = null;
+        try {
+            ConfigOpacCatalogue coc = ConfigOpac.getInstance().getCatalogueByName(configCatalogue);
+            IOpacPlugin myImportOpac = (IOpacPlugin) PluginLoader.getPluginByTitle(PluginType.Opac, coc.getOpacType());
+            ffNew = myImportOpac.search("12", catalogueId, coc, prefs);
+        } catch (Exception e) {
+            log.error("Exception while requesting the catalogue", e);
+            Helper.setFehlerMeldung("Exception while requesting the catalogue", e);
+            return PluginReturnValue.ERROR;
+        }
+
+        // if structure subelements shall be kept, merge old and new fileformat, otherwise just write the new one
+        try {
+            if (configMergeRecords) {
+                // first load logical topstruct or first child
+                DocStruct topstructNew = ffNew.getDigitalDocument().getLogicalDocStruct();
+                if (topstructNew.getType().isAnchor()) {
+                    topstructNew = topstructNew.getAllChildren().get(0);
+                }
+
+                // then run through all new metadata and check if these should
                 // replace the old ones
                 // if yes remove the old ones from the old fileformat
                 if (topstructNew.getAllMetadata() != null) {
@@ -153,28 +151,49 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                         }
                     }
                 }
-				
-				// then write the updated old file format
-				// ffOld.write(p.getMetadataFilePath());
-				p.writeMetadataFile(ffOld);
-				
-			} else {
-				// just write the new one and don't merge any data
-				// ffNew.write(p.getMetadataFilePath());
-				p.writeMetadataFile(ffNew);
-			}
-		} catch (Exception e) {
-			log.error("Exception while writing the updated METS file into the file system", e);
-			Helper.setFehlerMeldung("Exception while writing the updated METS file into the file system", e);
-			return PluginReturnValue.ERROR;
-		}
-		
-		// everything finished, exit plugin
-		log.debug("Finished with catalogue request");
+                // check if the new record contains metadata groups
+                if (topstructNew.getAllMetadataGroups() != null) {
+                    for (MetadataGroup newGroup : topstructNew.getAllMetadataGroups()) {
+                        // check if the group should be skipped
+                        if (!configSkipFields.contains(newGroup.getType().getName())) {
+                            // if not, remove the old groups of the type
+                            List<MetadataGroup> groupsToRemove = topstructOld.getAllMetadataGroupsByType(newGroup.getType());
+                            if (groupsToRemove != null) {
+                                for (MetadataGroup oldGroup : groupsToRemove) {
+                                    topstructOld.removeMetadataGroup(oldGroup);
+                                }
+                            }
+                        }
+                    }
+                    // add new metadata groups
+                    for (MetadataGroup newGroup : topstructNew.getAllMetadataGroups()) {
+                        if (!configSkipFields.contains(newGroup.getType().getName())) {
+                            topstructOld.addMetadataGroup(newGroup);
+                        }
+                    }
+                }
+
+                // then write the updated old file format
+                // ffOld.write(p.getMetadataFilePath());
+                p.writeMetadataFile(ffOld);
+
+            } else {
+                // just write the new one and don't merge any data
+                // ffNew.write(p.getMetadataFilePath());
+                p.writeMetadataFile(ffNew);
+            }
+        } catch (Exception e) {
+            log.error("Exception while writing the updated METS file into the file system", e);
+            Helper.setFehlerMeldung("Exception while writing the updated METS file into the file system", e);
+            return PluginReturnValue.ERROR;
+        }
+
+        // everything finished, exit plugin
+        log.debug("Finished with catalogue request");
         return PluginReturnValue.FINISH;
     }
-    
-    /** 
+
+    /**
      * execute method that is clicked by the user or executed by Goobi automatically
      */
     @Override
@@ -186,11 +205,12 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         return false;
     }
 
+    @Override
     public String cancel() {
         return returnPath;
     }
-    
-    /** 
+
+    /**
      * Initialize the plugin with all relevant information from the configuration file
      */
     @Override
@@ -200,35 +220,34 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
         String projectName = step.getProzess().getProjekt().getTitel();
         XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(this);
-//		XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
-		xmlConfig.setExpressionEngine(new XPathExpressionEngine());
-		
-		SubnodeConfiguration myconfig = null;
+        //		XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
+        xmlConfig.setExpressionEngine(new XPathExpressionEngine());
 
-		// order of configuration is:
-		// 1.) project name and step name matches
-		// 2.) step name matches and project is *
-		// 3.) project name matches and step name is *
-		// 4.) project name and step name are *
-		try {
-			myconfig = xmlConfig
-					.configurationAt("//config[./project = '" + projectName + "'][./step = '" + step.getTitel() + "']");
-		} catch (IllegalArgumentException e) {
-			try {
-				myconfig = xmlConfig.configurationAt("//config[./project = '*'][./step = '" + step.getTitel() + "']");
-			} catch (IllegalArgumentException e1) {
-				try {
-					myconfig = xmlConfig.configurationAt("//config[./project = '" + projectName + "'][./step = '*']");
-				} catch (IllegalArgumentException e2) {
-					myconfig = xmlConfig.configurationAt("//config[./project = '*'][./step = '*']");
-				}
-			}
-		}
+        SubnodeConfiguration myconfig = null;
 
-		configCatalogue = myconfig.getString("catalogue", "GBV");
-		configCatalogueId = myconfig.getString("catalogueIdentifier", "-");
-		configMergeRecords = myconfig.getBoolean("mergeRecords", false);
-		configSkipFields = myconfig.getList("skipField", new ArrayList<>());
+        // order of configuration is:
+        // 1.) project name and step name matches
+        // 2.) step name matches and project is *
+        // 3.) project name matches and step name is *
+        // 4.) project name and step name are *
+        try {
+            myconfig = xmlConfig.configurationAt("//config[./project = '" + projectName + "'][./step = '" + step.getTitel() + "']");
+        } catch (IllegalArgumentException e) {
+            try {
+                myconfig = xmlConfig.configurationAt("//config[./project = '*'][./step = '" + step.getTitel() + "']");
+            } catch (IllegalArgumentException e1) {
+                try {
+                    myconfig = xmlConfig.configurationAt("//config[./project = '" + projectName + "'][./step = '*']");
+                } catch (IllegalArgumentException e2) {
+                    myconfig = xmlConfig.configurationAt("//config[./project = '*'][./step = '*']");
+                }
+            }
+        }
+
+        configCatalogue = myconfig.getString("catalogue", "GBV");
+        configCatalogueId = myconfig.getString("catalogueIdentifier", "-");
+        configMergeRecords = myconfig.getBoolean("mergeRecords", false);
+        configSkipFields = myconfig.getList("skipField", new ArrayList<>());
     }
 
     @Override

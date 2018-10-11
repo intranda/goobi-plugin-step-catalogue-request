@@ -31,6 +31,7 @@ import ugh.dl.DocStruct;
 import ugh.dl.Fileformat;
 import ugh.dl.Metadata;
 import ugh.dl.MetadataGroup;
+import ugh.dl.MetadataType;
 import ugh.dl.Person;
 import ugh.dl.Prefs;
 
@@ -45,11 +46,13 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     private String title = "intranda_step_catalogue_request";
 
     private String pagePath = "";
-    private Step step;
-    private String returnPath;
+    protected Step step;
+    protected String returnPath;
+    protected Process process;
+    protected Prefs prefs;
 
-    private String configCatalogue = "";
-    private String configCatalogueId = "";
+    protected String configCatalogue = "";
+    protected String configCatalogueId = "";
     private boolean configMergeRecords = false;
     private List<String> configSkipFields = null;
 
@@ -63,11 +66,9 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         // first read the original METS file for the process
         Fileformat ffOld = null;
         DigitalDocument dd = null;
-        Process p = step.getProzess();
-        Prefs prefs = p.getRegelsatz().getPreferences();
         DocStruct topstructOld = null;
         try {
-            ffOld = p.readMetadataFile();
+            ffOld = process.readMetadataFile();
             if (ffOld == null) {
                 log.error("Metadata file is not readable for process with ID " + step.getProcessId());
                 Helper.setFehlerMeldung("Metadata file is not readable for process with ID " + step.getProcessId());
@@ -175,12 +176,12 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
                 // then write the updated old file format
                 // ffOld.write(p.getMetadataFilePath());
-                p.writeMetadataFile(ffOld);
+                process.writeMetadataFile(ffOld);
 
             } else {
                 // just write the new one and don't merge any data
                 // ffNew.write(p.getMetadataFilePath());
-                p.writeMetadataFile(ffNew);
+                process.writeMetadataFile(ffNew);
             }
         } catch (Exception e) {
             log.error("Exception while writing the updated METS file into the file system", e);
@@ -217,6 +218,8 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     public void initialize(Step step, String returnPath) {
         this.step = step;
         this.returnPath = returnPath;
+        process = step.getProzess();
+        prefs = process.getRegelsatz().getPreferences();
 
         String projectName = step.getProzess().getProjekt().getTitel();
         XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(this);
@@ -265,4 +268,27 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         return 2;
     }
 
+    /**
+     * Get the value for a metadata type from a docstruct. Possible return values are:
+     * <ul>
+     * <li>null if docstruct or metadata type are undefined</li>
+     * <li>empty string, if docstruct does not contain the metadata</li>
+     * <li>value of the first occurrence of the metadata</li>
+     * </ul>
+     * 
+     * @param docstruct
+     * @param metadataType
+     * @return
+     */
+
+    protected String getMetadataValueFromDoctStruct(DocStruct docstruct, MetadataType metadataType) {
+        if (docstruct == null || metadataType == null) {
+            return null;
+        }
+        for (Metadata md : docstruct.getAllMetadataByType(metadataType)) {
+            return md.getValue();
+        }
+
+        return "";
+    }
 }

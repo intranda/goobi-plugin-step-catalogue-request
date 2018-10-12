@@ -111,40 +111,32 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     topstructNew = topstructNew.getAllChildren().get(0);
                 }
 
-                // then run through all new metadata and check if these should
-                // replace the old ones
-                // if yes remove the old ones from the old fileformat
-                if (topstructNew.getAllMetadata() != null) {
-                    for (Metadata md : topstructNew.getAllMetadata()) {
+                // run through all old metadata
+                if (topstructOld.getAllMetadata() != null) {
+                    for (Metadata md : topstructOld.getAllMetadata()) {
+                        // check if they should be replaced or skipped
                         if (!configSkipFields.contains(md.getType().getName())) {
-                            List<? extends Metadata> remove = topstructOld.getAllMetadataByType(md.getType());
-                            if (remove != null) {
-                                for (Metadata mdRm : remove) {
-                                    topstructOld.removeMetadata(mdRm);
-                                }
-                            }
+                            // remove old entry
+                            topstructOld.removeMetadata(md);
                         }
                     }
-                    // now add the new metadata to the old topstruct
+                }
+                // add new metadata
+                if (topstructNew.getAllMetadata() != null) {
                     for (Metadata md : topstructNew.getAllMetadata()) {
                         if (!configSkipFields.contains(md.getType().getName())) {
                             topstructOld.addMetadata(md);
                         }
                     }
                 }
-
-                // now do the same with persons
-                if (topstructNew.getAllPersons() != null) {
-                    for (Person pd : topstructNew.getAllPersons()) {
+                if (topstructOld.getAllPersons() != null) {
+                    for (Person pd : topstructOld.getAllPersons()) {
                         if (!configSkipFields.contains(pd.getType().getName())) {
-                            List<? extends Person> remove = topstructOld.getAllPersonsByType(pd.getType());
-                            if (remove != null) {
-                                for (Person pdRm : remove) {
-                                    topstructOld.removePerson(pdRm);
-                                }
-                            }
+                            topstructOld.removePerson(pd);
                         }
                     }
+                }
+                if (topstructNew.getAllPersons() != null) {
                     // now add the new persons to the old topstruct
                     for (Person pd : topstructNew.getAllPersons()) {
                         if (!configSkipFields.contains(pd.getType().getName())) {
@@ -152,27 +144,87 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                         }
                     }
                 }
-                // check if the new record contains metadata groups
-                if (topstructNew.getAllMetadataGroups() != null) {
-                    for (MetadataGroup newGroup : topstructNew.getAllMetadataGroups()) {
+
+                if (topstructOld.getAllMetadataGroups() != null) {
+                    for (MetadataGroup group : topstructOld.getAllMetadataGroups()) {
                         // check if the group should be skipped
-                        if (!configSkipFields.contains(newGroup.getType().getName())) {
+                        if (!configSkipFields.contains(group.getType().getName())) {
                             // if not, remove the old groups of the type
-                            List<MetadataGroup> groupsToRemove = topstructOld.getAllMetadataGroupsByType(newGroup.getType());
-                            if (groupsToRemove != null) {
-                                for (MetadataGroup oldGroup : groupsToRemove) {
-                                    topstructOld.removeMetadataGroup(oldGroup);
-                                }
-                            }
+                            topstructOld.removeMetadataGroup(group);
                         }
                     }
-                    // add new metadata groups
+                }
+                // add new metadata groups
+                if (topstructNew.getAllMetadataGroups() != null) {
                     for (MetadataGroup newGroup : topstructNew.getAllMetadataGroups()) {
                         if (!configSkipFields.contains(newGroup.getType().getName())) {
                             topstructOld.addMetadataGroup(newGroup);
                         }
                     }
                 }
+
+                // then run through all new metadata and check if these should
+                // replace the old ones
+                // if yes remove the old ones from the old fileformat
+                //                if (topstructNew.getAllMetadata() != null) {
+                //                    for (Metadata md : topstructNew.getAllMetadata()) {
+                //                        if (!configSkipFields.contains(md.getType().getName())) {
+                //                            List<? extends Metadata> remove = topstructOld.getAllMetadataByType(md.getType());
+                //                            if (remove != null) {
+                //                                for (Metadata mdRm : remove) {
+                //                                    topstructOld.removeMetadata(mdRm);
+                //                                }
+                //                            }
+                //                        }
+                //                    }
+                //                    // now add the new metadata to the old topstruct
+                //                    for (Metadata md : topstructNew.getAllMetadata()) {
+                //                        if (!configSkipFields.contains(md.getType().getName())) {
+                //                            topstructOld.addMetadata(md);
+                //                        }
+                //                    }
+                //                }
+
+                // now do the same with persons
+                //                if (topstructNew.getAllPersons() != null) {
+                //                    for (Person pd : topstructNew.getAllPersons()) {
+                //                        if (!configSkipFields.contains(pd.getType().getName())) {
+                //                            List<? extends Person> remove = topstructOld.getAllPersonsByType(pd.getType());
+                //                            if (remove != null) {
+                //                                for (Person pdRm : remove) {
+                //                                    topstructOld.removePerson(pdRm);
+                //                                }
+                //                            }
+                //                        }
+                //                    }
+                //                    // now add the new persons to the old topstruct
+                //                    for (Person pd : topstructNew.getAllPersons()) {
+                //                        if (!configSkipFields.contains(pd.getType().getName())) {
+                //                            topstructOld.addPerson(pd);
+                //                        }
+                //                    }
+                //                }
+                // check if the new record contains metadata groups
+                //                if (topstructNew.getAllMetadataGroups() != null) {
+                //                    for (MetadataGroup newGroup : topstructNew.getAllMetadataGroups()) {
+                //                        // check if the group should be skipped
+                //                        if (!configSkipFields.contains(newGroup.getType().getName())) {
+                //                            // if not, remove the old groups of the type
+                //                            List<MetadataGroup> groupsToRemove = topstructOld.getAllMetadataGroupsByType(newGroup.getType());
+                //                            if (groupsToRemove != null) {
+                //                                for (MetadataGroup oldGroup : groupsToRemove) {
+                //                                    topstructOld.removeMetadataGroup(oldGroup);
+                //                                }
+                //                            }
+                //                        }
+                //                    }
+                //                    // add new metadata groups
+                //                    for (MetadataGroup newGroup : topstructNew.getAllMetadataGroups()) {
+                //                        if (!configSkipFields.contains(newGroup.getType().getName())) {
+                //                            topstructOld.addMetadataGroup(newGroup);
+                //                        }
+                //                    }
+                //                }
 
                 // then write the updated old file format
                 // ffOld.write(p.getMetadataFilePath());

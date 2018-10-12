@@ -113,7 +113,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
                 // run through all old metadata
                 if (topstructOld.getAllMetadata() != null) {
-                    for (Metadata md : topstructOld.getAllMetadata()) {
+                    for (Metadata md : new ArrayList<>(topstructOld.getAllMetadata())) {
                         // check if they should be replaced or skipped
                         if (!configSkipFields.contains(md.getType().getName())) {
                             // remove old entry
@@ -130,7 +130,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     }
                 }
                 if (topstructOld.getAllPersons() != null) {
-                    for (Person pd : topstructOld.getAllPersons()) {
+                    for (Person pd : new ArrayList<>(topstructOld.getAllPersons())) {
                         if (!configSkipFields.contains(pd.getType().getName())) {
                             topstructOld.removePerson(pd);
                         }
@@ -146,7 +146,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 }
 
                 if (topstructOld.getAllMetadataGroups() != null) {
-                    for (MetadataGroup group : topstructOld.getAllMetadataGroups()) {
+                    for (MetadataGroup group : new ArrayList<>(topstructOld.getAllMetadataGroups())) {
                         // check if the group should be skipped
                         if (!configSkipFields.contains(group.getType().getName())) {
                             // if not, remove the old groups of the type

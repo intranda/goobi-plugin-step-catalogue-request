@@ -23,7 +23,8 @@
 		<skipField>TitleDocMain</skipField>
 		<skipField>CatalogueIDDigital</skipField>
 		<skipField>DocLanguage</skipField>
-		
+        <skipField>_urn</skipField>
+        <skipField>_representative</skipField>
 	</config>	
 
 </config_plugin>

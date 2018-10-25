@@ -34,6 +34,7 @@ import ugh.dl.MetadataGroup;
 import ugh.dl.MetadataType;
 import ugh.dl.Person;
 import ugh.dl.Prefs;
+import ugh.exceptions.MetadataTypeNotAllowedException;
 
 @PluginImplementation
 @Log4j
@@ -67,6 +68,9 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         Fileformat ffOld = null;
         DigitalDocument dd = null;
         DocStruct topstructOld = null;
+
+        DocStruct anchorOld = null;
+        DocStruct physOld = null;
         try {
             ffOld = process.readMetadataFile();
             if (ffOld == null) {
@@ -75,10 +79,13 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 return PluginReturnValue.ERROR;
             }
             dd = ffOld.getDigitalDocument();
-            topstructOld = ffOld.getDigitalDocument().getLogicalDocStruct();
+            topstructOld = dd.getLogicalDocStruct();
             if (topstructOld.getType().isAnchor()) {
+                anchorOld = topstructOld;
                 topstructOld = topstructOld.getAllChildren().get(0);
             }
+            physOld = dd.getPhysicalDocStruct();
+
         } catch (Exception e) {
             log.error("An exception occurred while reading the metadata file for process with ID " + step.getProcessId(), e);
             Helper.setFehlerMeldung("An exception occurred while reading the metadata file for process with ID " + step.getProcessId(), e);
@@ -106,125 +113,28 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         try {
             if (configMergeRecords) {
                 // first load logical topstruct or first child
+
                 DocStruct topstructNew = ffNew.getDigitalDocument().getLogicalDocStruct();
+                DocStruct anchorNew = null;
+                DocStruct physNew = ffNew.getDigitalDocument().getPhysicalDocStruct();
                 if (topstructNew.getType().isAnchor()) {
+                    anchorNew = topstructNew;
                     topstructNew = topstructNew.getAllChildren().get(0);
                 }
 
-                // run through all old metadata
-                if (topstructOld.getAllMetadata() != null) {
-                    for (Metadata md : new ArrayList<>(topstructOld.getAllMetadata())) {
-                        // check if they should be replaced or skipped
-                        if (!configSkipFields.contains(md.getType().getName())) {
-                            // remove old entry
-                            topstructOld.removeMetadata(md);
-                        }
-                    }
-                }
-                // add new metadata
-                if (topstructNew.getAllMetadata() != null) {
-                    for (Metadata md : topstructNew.getAllMetadata()) {
-                        if (!configSkipFields.contains(md.getType().getName())) {
-                            topstructOld.addMetadata(md);
-                        }
-                    }
-                }
-                if (topstructOld.getAllPersons() != null) {
-                    for (Person pd : new ArrayList<>(topstructOld.getAllPersons())) {
-                        if (!configSkipFields.contains(pd.getType().getName())) {
-                            topstructOld.removePerson(pd);
-                        }
-                    }
-                }
-                if (topstructNew.getAllPersons() != null) {
-                    // now add the new persons to the old topstruct
-                    for (Person pd : topstructNew.getAllPersons()) {
-                        if (!configSkipFields.contains(pd.getType().getName())) {
-                            topstructOld.addPerson(pd);
-                        }
-                    }
+                // run through all old metadata of main element
+                mergeMetadataRecords(topstructOld, topstructNew);
+
+                // replace metadata of anchor element
+                if (anchorNew != null && anchorOld != null) {
+                    mergeMetadataRecords(anchorOld, anchorNew);
                 }
 
-                if (topstructOld.getAllMetadataGroups() != null) {
-                    for (MetadataGroup group : new ArrayList<>(topstructOld.getAllMetadataGroups())) {
-                        // check if the group should be skipped
-                        if (!configSkipFields.contains(group.getType().getName())) {
-                            // if not, remove the old groups of the type
-                            topstructOld.removeMetadataGroup(group);
-                        }
-                    }
-                }
-                // add new metadata groups
-                if (topstructNew.getAllMetadataGroups() != null) {
-                    for (MetadataGroup newGroup : topstructNew.getAllMetadataGroups()) {
-                        if (!configSkipFields.contains(newGroup.getType().getName())) {
-                            topstructOld.addMetadataGroup(newGroup);
-                        }
-                    }
+                // replace metadata of physical element
+                if (physOld != null && physOld != null) {
+                    mergeMetadataRecords(physOld, physNew);
                 }
 
-                // then run through all new metadata and check if these should
-                // replace the old ones
-                // if yes remove the old ones from the old fileformat
-                //                if (topstructNew.getAllMetadata() != null) {
-                //                    for (Metadata md : topstructNew.getAllMetadata()) {
-                //                        if (!configSkipFields.contains(md.getType().getName())) {
-                //                            List<? extends Metadata> remove = topstructOld.getAllMetadataByType(md.getType());
-                //                            if (remove != null) {
-                //                                for (Metadata mdRm : remove) {
-                //                                    topstructOld.removeMetadata(mdRm);
-                //                                }
-                //                            }
-                //                        }
-                //                    }
-                //                    // now add the new metadata to the old topstruct
-                //                    for (Metadata md : topstructNew.getAllMetadata()) {
-                //                        if (!configSkipFields.contains(md.getType().getName())) {
-                //                            topstructOld.addMetadata(md);
-                //                        }
-                //                    }
-                //                }
-
-                // now do the same with persons
-                //                if (topstructNew.getAllPersons() != null) {
-                //                    for (Person pd : topstructNew.getAllPersons()) {
-                //                        if (!configSkipFields.contains(pd.getType().getName())) {
-                //                            List<? extends Person> remove = topstructOld.getAllPersonsByType(pd.getType());
-                //                            if (remove != null) {
-                //                                for (Person pdRm : remove) {
-                //                                    topstructOld.removePerson(pdRm);
-                //                                }
-                //                            }
-                //                        }
-                //                    }
-                //                    // now add the new persons to the old topstruct
-                //                    for (Person pd : topstructNew.getAllPersons()) {
-                //                        if (!configSkipFields.contains(pd.getType().getName())) {
-                //                            topstructOld.addPerson(pd);
-                //                        }
-                //                    }
-                //                }
-                // check if the new record contains metadata groups
-                //                if (topstructNew.getAllMetadataGroups() != null) {
-                //                    for (MetadataGroup newGroup : topstructNew.getAllMetadataGroups()) {
-                //                        // check if the group should be skipped
-                //                        if (!configSkipFields.contains(newGroup.getType().getName())) {
-                //                            // if not, remove the old groups of the type
-                //                            List<MetadataGroup> groupsToRemove = topstructOld.getAllMetadataGroupsByType(newGroup.getType());
-                //                            if (groupsToRemove != null) {
-                //                                for (MetadataGroup oldGroup : groupsToRemove) {
-                //                                    topstructOld.removeMetadataGroup(oldGroup);
-                //                                }
-                //                            }
-                //                        }
-                //                    }
-                //                    // add new metadata groups
-                //                    for (MetadataGroup newGroup : topstructNew.getAllMetadataGroups()) {
-                //                        if (!configSkipFields.contains(newGroup.getType().getName())) {
-                //                            topstructOld.addMetadataGroup(newGroup);
-                //                        }
-                //                    }
-                //                }
 
                 // then write the updated old file format
                 // ffOld.write(p.getMetadataFilePath());
@@ -244,6 +154,69 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         // everything finished, exit plugin
         log.debug("Finished with catalogue request");
         return PluginReturnValue.FINISH;
+    }
+
+    /**
+     * Replaces the metadata of the old docstruct with the values of the new docstruct.
+     * If a metadata type of the old docstruct is marked as to skip, it gets not replaced. Otherwise all old data is removed and all new metadata is added.
+     * 
+     * @param docstructOld
+     * @param docstructNew
+     * @throws MetadataTypeNotAllowedException
+     */
+
+
+    private void mergeMetadataRecords(DocStruct docstructOld, DocStruct docstructNew) throws MetadataTypeNotAllowedException {
+        if (docstructOld.getAllMetadata() != null) {
+            for (Metadata md : new ArrayList<>(docstructOld.getAllMetadata())) {
+                // check if they should be replaced or skipped
+                if (!configSkipFields.contains(md.getType().getName())) {
+                    // remove old entry
+                    docstructOld.removeMetadata(md);
+                }
+            }
+        }
+        // add new metadata
+        if (docstructNew.getAllMetadata() != null) {
+            for (Metadata md : docstructNew.getAllMetadata()) {
+                if (!configSkipFields.contains(md.getType().getName())) {
+                    docstructOld.addMetadata(md);
+                }
+            }
+        }
+        if (docstructOld.getAllPersons() != null) {
+            for (Person pd : new ArrayList<>(docstructOld.getAllPersons())) {
+                if (!configSkipFields.contains(pd.getType().getName())) {
+                    docstructOld.removePerson(pd);
+                }
+            }
+        }
+        if (docstructNew.getAllPersons() != null) {
+            // now add the new persons to the old topstruct
+            for (Person pd : docstructNew.getAllPersons()) {
+                if (!configSkipFields.contains(pd.getType().getName())) {
+                    docstructOld.addPerson(pd);
+                }
+            }
+        }
+
+        if (docstructOld.getAllMetadataGroups() != null) {
+            for (MetadataGroup group : new ArrayList<>(docstructOld.getAllMetadataGroups())) {
+                // check if the group should be skipped
+                if (!configSkipFields.contains(group.getType().getName())) {
+                    // if not, remove the old groups of the type
+                    docstructOld.removeMetadataGroup(group);
+                }
+            }
+        }
+        // add new metadata groups
+        if (docstructNew.getAllMetadataGroups() != null) {
+            for (MetadataGroup newGroup : docstructNew.getAllMetadataGroups()) {
+                if (!configSkipFields.contains(newGroup.getType().getName())) {
+                    docstructOld.addMetadataGroup(newGroup);
+                }
+            }
+        }
     }
 
     /**

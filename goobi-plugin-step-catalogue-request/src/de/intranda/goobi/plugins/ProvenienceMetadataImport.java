@@ -78,6 +78,11 @@ public class ProvenienceMetadataImport extends CatalogueRequestPlugin {
                 anchor.removeMetadataGroup(mg);
             }
             String epn = getMetadataValueFromDoctStruct(anchor, epnType);
+            // use first epn if more than one is given
+            if (StringUtils.isNotBlank(epn) && epn.contains(" ")) {
+                epn = epn.substring(0, epn.indexOf(" "));
+            }
+
             Element element = getPicaRecord(opacPlugin, epn);
             if (element != null) {
                 try {
@@ -142,6 +147,7 @@ public class ProvenienceMetadataImport extends CatalogueRequestPlugin {
                     // found new provenience entry, create new MetadataGroup
                     MetadataGroup provGroup = new MetadataGroup(groupType);
                     groups.add(provGroup);
+                    boolean foundSubfieldZero = false;
                     for (Element subfield : datafield.getChildren()) {
                         switch (subfield.getAttributeValue("code")) {
                             case "S":
@@ -152,13 +158,16 @@ public class ProvenienceMetadataImport extends CatalogueRequestPlugin {
                                 break;
                             case "0":
                             case "8":
+                                foundSubfieldZero = true;
                                 String value = subfield.getValue().replace("gnd/", "");
                                 Metadata owner = provGroup.getMetadataByType(proveniencePrevOwner.getName()).get(0);
                                 owner.setAutorityFile("gnd", "http://d-nb.info/gnd/", value);
                                 //                                PrevOwner normdata
                                 break;
                             case "b":
-                                addSubfieldToGroup(provGroup, subfield, provenienceCharacteristic);
+                                if (foundSubfieldZero) {
+                                    addSubfieldToGroup(provGroup, subfield, provenienceCharacteristic);
+                                }
                                 break;
                             case "c":
                                 // check for numeric values to ignore name additions like "von"

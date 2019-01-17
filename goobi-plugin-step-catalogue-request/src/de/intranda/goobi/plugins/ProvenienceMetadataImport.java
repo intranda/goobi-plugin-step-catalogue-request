@@ -106,6 +106,10 @@ public class ProvenienceMetadataImport extends CatalogueRequestPlugin {
             }
 
             String epn = getMetadataValueFromDoctStruct(topStruct, epnType);
+            if (StringUtils.isNotBlank(epn) && epn.contains(" ")) {
+                epn = epn.substring(0, epn.indexOf(" "));
+            }
+
             Element element = getPicaRecord(opacPlugin, epn);
             if (element != null) {
                 try {
@@ -148,6 +152,16 @@ public class ProvenienceMetadataImport extends CatalogueRequestPlugin {
                     MetadataGroup provGroup = new MetadataGroup(groupType);
                     groups.add(provGroup);
                     boolean foundSubfieldZero = false;
+                    boolean subfieldZeroIsPresent = false;
+                    // check if subfield code = "0" is present
+
+                    for (Element subfield : datafield.getChildren()) {
+                        if ("0".equals(subfield.getAttributeValue("code"))) {
+                            subfieldZeroIsPresent = true;
+                            break;
+                        }
+                    }
+
                     for (Element subfield : datafield.getChildren()) {
                         switch (subfield.getAttributeValue("code")) {
                             case "S":
@@ -158,14 +172,14 @@ public class ProvenienceMetadataImport extends CatalogueRequestPlugin {
                                 break;
                             case "0":
                             case "8":
-                                foundSubfieldZero = true;
+                                foundSubfieldZero= true;
                                 String value = subfield.getValue().replace("gnd/", "");
                                 Metadata owner = provGroup.getMetadataByType(proveniencePrevOwner.getName()).get(0);
                                 owner.setAutorityFile("gnd", "http://d-nb.info/gnd/", value);
                                 //                                PrevOwner normdata
                                 break;
                             case "b":
-                                if (foundSubfieldZero) {
+                                if (!subfieldZeroIsPresent || (subfieldZeroIsPresent && foundSubfieldZero)) {
                                     addSubfieldToGroup(provGroup, subfield, provenienceCharacteristic);
                                 }
                                 break;

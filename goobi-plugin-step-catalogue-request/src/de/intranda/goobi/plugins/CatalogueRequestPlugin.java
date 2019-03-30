@@ -247,8 +247,8 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         prefs = process.getRegelsatz().getPreferences();
 
         String projectName = step.getProzess().getProjekt().getTitel();
-        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(this);
-        //		XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
+//        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(this);
+        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
         xmlConfig.setExpressionEngine(new XPathExpressionEngine());
 
         SubnodeConfiguration myconfig = null;

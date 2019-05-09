@@ -21,7 +21,7 @@
 		<!-- if records shall be merged: which existing fields shall not be replace with new values? 
 			(use the metadatatypes from ruleset) -->
 		<skipField>TitleDocMain</skipField>
-		<skipField>CatalogueIDDigital</skipField>
+		<skipField>CatalogIDDigital</skipField>
 		<skipField>DocLanguage</skipField>
         <skipField>_urn</skipField>
         <skipField>_representative</skipField>

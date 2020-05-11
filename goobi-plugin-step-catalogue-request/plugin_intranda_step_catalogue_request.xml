@@ -10,6 +10,9 @@
 		<!-- which catalogue to use (GBV, Wiener, CBL Adlib ...) -->
 		<catalogue>Wiener</catalogue>
 		
+		<!-- which field to use for the catalogue request (typically '12' for identifier, sometimes '1007' for barcodes -->
+		<catalogueField>12</catalogueField>
+		
 		<!-- which identifier to use for the catalogue request 
 			(use standard variable replacer compatible value here) -->
 		<catalogueIdentifier>$(meta.CatalogIDDigital)</catalogueIdentifier>

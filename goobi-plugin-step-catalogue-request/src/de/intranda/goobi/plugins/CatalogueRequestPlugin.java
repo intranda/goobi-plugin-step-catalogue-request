@@ -53,7 +53,9 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     protected Prefs prefs;
 
     protected String configCatalogue = "";
+    protected String configCatalogueField = "";
     protected String configCatalogueId = "";
+    
     private boolean configMergeRecords = false;
     private List<String> configSkipFields = null;
 
@@ -62,7 +64,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
      */
     @Override
     public PluginReturnValue run() {
-        log.debug("Starting catalogue request using catalogue: " + configCatalogue + " with identifier field " + configCatalogueId);
+        log.debug("Starting catalogue request using catalogue: " + configCatalogue + " in field " + configCatalogueField + " with identifier " + configCatalogueId);
 
         // first read the original METS file for the process
         Fileformat ffOld = null;
@@ -102,7 +104,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         try {
             ConfigOpacCatalogue coc = ConfigOpac.getInstance().getCatalogueByName(configCatalogue);
             IOpacPlugin myImportOpac = (IOpacPlugin) PluginLoader.getPluginByTitle(PluginType.Opac, coc.getOpacType());
-            ffNew = myImportOpac.search("12", catalogueId, coc, prefs);
+            ffNew = myImportOpac.search(configCatalogueField, catalogueId, coc, prefs);
         } catch (Exception e) {
             log.error("Exception while requesting the catalogue", e);
             Helper.setFehlerMeldung("Exception while requesting the catalogue", e);
@@ -273,6 +275,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         }
 
         configCatalogue = myconfig.getString("catalogue", "GBV");
+        configCatalogueField = myconfig.getString("catalogueField", "12");
         configCatalogueId = myconfig.getString("catalogueIdentifier", "-");
         configMergeRecords = myconfig.getBoolean("mergeRecords", false);
         configSkipFields = myconfig.getList("skipField", new ArrayList<>());

@@ -178,7 +178,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             }
             // remove old entry
             for (Metadata md : metadataToRemove) {
-                docstructOld.removeMetadata(md);
+                docstructOld.removeMetadata(md, true);
             }
         }
 
@@ -186,7 +186,9 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         if (docstructNew.getAllMetadata() != null) {
             for (Metadata md : docstructNew.getAllMetadata()) {
                 if (!configSkipFields.contains(md.getType().getName())) {
-                    docstructOld.addMetadata(md);
+                    Metadata newmetadata = new Metadata(md.getType()) ;
+                    newmetadata.setValue(md.getValue());
+                    docstructOld.addMetadata(newmetadata);
                 }
             }
         }
@@ -198,7 +200,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 }
             }
             for (Person pd : personsToRemove) {
-                docstructOld.removePerson(pd);
+                docstructOld.removePerson(pd, true);
             }
         }
         if (docstructNew.getAllPersons() != null) {
@@ -221,7 +223,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 }
             }
             for (MetadataGroup group : groupsToRemove) {
-                docstructOld.removeMetadataGroup(group);
+                docstructOld.removeMetadataGroup(group, true);
             }
         }
         // add new metadata groups

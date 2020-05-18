@@ -55,7 +55,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     protected String configCatalogue = "";
     protected String configCatalogueField = "";
     protected String configCatalogueId = "";
-    
+
     private boolean configMergeRecords = false;
     private List<String> configSkipFields = null;
 
@@ -64,7 +64,8 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
      */
     @Override
     public PluginReturnValue run() {
-        log.debug("Starting catalogue request using catalogue: " + configCatalogue + " in field " + configCatalogueField + " with identifier " + configCatalogueId);
+        log.debug("Starting catalogue request using catalogue: " + configCatalogue + " in field " + configCatalogueField + " with identifier "
+                + configCatalogueId);
 
         // first read the original METS file for the process
         Fileformat ffOld = null;
@@ -137,7 +138,6 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     mergeMetadataRecords(physOld, physNew);
                 }
 
-
                 // then write the updated old file format
                 // ffOld.write(p.getMetadataFilePath());
                 process.writeMetadataFile(ffOld);
@@ -159,25 +159,29 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     }
 
     /**
-     * Replaces the metadata of the old docstruct with the values of the new docstruct.
-     * If a metadata type of the old docstruct is marked as to skip, it gets not replaced. Otherwise all old data is removed and all new metadata is added.
+     * Replaces the metadata of the old docstruct with the values of the new docstruct. If a metadata type of the old docstruct is marked as to skip,
+     * it gets not replaced. Otherwise all old data is removed and all new metadata is added.
      * 
      * @param docstructOld
      * @param docstructNew
      * @throws MetadataTypeNotAllowedException
      */
 
-
     private void mergeMetadataRecords(DocStruct docstructOld, DocStruct docstructNew) throws MetadataTypeNotAllowedException {
         if (docstructOld.getAllMetadata() != null) {
-            for (Metadata md : new ArrayList<>(docstructOld.getAllMetadata())) {
+            List<Metadata> metadataToRemove = new ArrayList<>();
+            for (Metadata md : docstructOld.getAllMetadata()) {
                 // check if they should be replaced or skipped
                 if (!configSkipFields.contains(md.getType().getName())) {
-                    // remove old entry
-                    docstructOld.removeMetadata(md);
+                    metadataToRemove.add(md);
                 }
             }
+            // remove old entry
+            for (Metadata md : metadataToRemove) {
+                docstructOld.removeMetadata(md);
+            }
         }
+
         // add new metadata
         if (docstructNew.getAllMetadata() != null) {
             for (Metadata md : docstructNew.getAllMetadata()) {
@@ -187,10 +191,14 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             }
         }
         if (docstructOld.getAllPersons() != null) {
-            for (Person pd : new ArrayList<>(docstructOld.getAllPersons())) {
+            List<Person> personsToRemove = new ArrayList<>();
+            for (Person pd : docstructOld.getAllPersons()) {
                 if (!configSkipFields.contains(pd.getType().getName())) {
-                    docstructOld.removePerson(pd);
+                    personsToRemove.add(pd);
                 }
+            }
+            for (Person pd : personsToRemove) {
+                docstructOld.removePerson(pd);
             }
         }
         if (docstructNew.getAllPersons() != null) {
@@ -203,12 +211,17 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         }
 
         if (docstructOld.getAllMetadataGroups() != null) {
-            for (MetadataGroup group : new ArrayList<>(docstructOld.getAllMetadataGroups())) {
+            List<MetadataGroup> groupsToRemove = new ArrayList<>();
+
+            for (MetadataGroup group : docstructOld.getAllMetadataGroups()) {
                 // check if the group should be skipped
                 if (!configSkipFields.contains(group.getType().getName())) {
                     // if not, remove the old groups of the type
-                    docstructOld.removeMetadataGroup(group);
+                    groupsToRemove.add(group);
                 }
+            }
+            for (MetadataGroup group : groupsToRemove) {
+                docstructOld.removeMetadataGroup(group);
             }
         }
         // add new metadata groups
@@ -249,7 +262,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         prefs = process.getRegelsatz().getPreferences();
 
         String projectName = step.getProzess().getProjekt().getTitel();
-//        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(this);
+        //        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(this);
         XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
         xmlConfig.setExpressionEngine(new XPathExpressionEngine());
 

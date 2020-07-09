@@ -1,6 +1,7 @@
 package de.intranda.goobi.plugins;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -293,7 +294,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         configCatalogueField = myconfig.getString("catalogueField", "12");
         configCatalogueId = myconfig.getString("catalogueIdentifier", "-");
         configMergeRecords = myconfig.getBoolean("mergeRecords", false);
-        configSkipFields = myconfig.getList("skipField", new ArrayList<>());
+        configSkipFields = Arrays.asList(myconfig.getStringArray("skipField"));
     }
 
     @Override

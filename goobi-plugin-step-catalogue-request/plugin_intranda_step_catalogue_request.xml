@@ -22,6 +22,15 @@
 			otherwise a complete new mets file is created and overwrites the existing one (false) -->
 		<mergeRecords>true</mergeRecords>
 		
+		<!-- define here if the catalogue request shall simply be skipped in case of 
+			missing catalogue plugin or missing catalogue identifier; if set to true the 
+			plugin will respond with an error status in case of missing information -->
+		<ignoreMissingData>false</ignoreMissingData>
+		
+		<!-- define here if the catalogue request shall be skipped in case of request issues 
+			(e.g. wrong record identifier or network issues) -->
+		<ignoreRequestIssues>false</ignoreRequestIssues>
+		
 		<!-- if records shall be merged: which existing fields shall not be replace with new values? 
 			(use the metadatatypes from ruleset) -->
 		<skipField>TitleDocMain</skipField>

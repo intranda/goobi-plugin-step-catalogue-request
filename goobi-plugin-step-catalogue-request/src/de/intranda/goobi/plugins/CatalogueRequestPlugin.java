@@ -10,6 +10,7 @@ import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.goobi.beans.Process;
 import org.goobi.beans.Step;
+import org.goobi.production.enums.LogType;
 import org.goobi.production.enums.PluginGuiType;
 import org.goobi.production.enums.PluginReturnValue;
 import org.goobi.production.enums.PluginType;
@@ -57,7 +58,8 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     protected String configCatalogue = "";
     protected String configCatalogueField = "";
     protected String configCatalogueId = "";
-
+    private boolean configIgnoreMissingData = false;
+    private boolean configIgnoreRequestIssues = false;
     private boolean configMergeRecords = false;
     private List<String> configSkipFields = null;
 
@@ -100,6 +102,22 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         // create a VariableReplacer to transform the identifier field from the configuration into a real value
         VariableReplacer replacer = new VariableReplacer(dd, prefs, step.getProzess(), step);
         String catalogueId = replacer.replace(configCatalogueId);
+        if (catalogueId.isEmpty()) {
+            if (configIgnoreMissingData) {
+                log.debug("No catalogue identifier found. No automatic catalogue request possible. Move on with workflow.");
+                Helper.setMeldung("No catalogue identifier found. No automatic catalogue request possible.");
+                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.INFO,
+                        "No catalogue identifier found. No automatic catalogue request possible. Move on with workflow.");
+                return PluginReturnValue.FINISH;
+            } else {
+                log.error("No catalogue identifier found. No automatic catalogue request possible.");
+                Helper.setFehlerMeldung("No catalogue identifier found. No automatic catalogue request possible.");
+                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.ERROR,
+                        "No catalogue identifier found. No automatic catalogue request possible.");
+                return PluginReturnValue.ERROR;
+            }
+        }
+        
         log.debug("Using this value for the catalogue request: " + catalogueId);
 
         // request the wished catalogue with the correct identifier
@@ -116,13 +134,20 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 }
             }
             if (myImportOpac == null) {
-            	log.error("Opac plugin for catalogue " + catalogue + " not found.");
-                Helper.setFehlerMeldung("Opac plugin for catalogue " + catalogue + " not found.");
-                return PluginReturnValue.ERROR;
+                if (configIgnoreMissingData) {
+                    log.debug("Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible. Move on with workflow.");
+                    Helper.setMeldung("No catalogue identifier found. No automatic catalogue request possible.");
+                    Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.INFO,
+                            "Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible. Move on with workflow.");
+                    return PluginReturnValue.FINISH;
+                } else {
+                    log.error("Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible.");
+                    Helper.setFehlerMeldung("No catalogue identifier found. No automatic catalogue request possible.");
+                    Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.ERROR,
+                            "Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible.");
+                    return PluginReturnValue.ERROR;
+                }
             }
-        	
-//        	ConfigOpacCatalogue coc = ConfigOpac.getInstance().getCatalogueByName(catalogue);
-//          IOpacPlugin myImportOpac = (IOpacPlugin) PluginLoader.getPluginByTitle(PluginType.Opac, coc.getOpacType());
             ffNew = myImportOpac.search(configCatalogueField, catalogueId, coc, prefs);
         } catch (Exception e) {
             log.error("Exception while requesting the catalogue", e);
@@ -130,6 +155,22 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             return PluginReturnValue.ERROR;
         }
 
+        if (ffNew == null) {
+            if (configIgnoreRequestIssues) {
+                log.debug("No record found. No automatic catalogue request possible. Move on with workflow.");
+                Helper.setMeldung("No record found. No automatic catalogue request possible.");
+                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.INFO,
+                        "No record found. No automatic catalogue request possible. Move on with workflow.");
+                return PluginReturnValue.FINISH;
+            } else {
+                log.error("No record found. No automatic catalogue request possible.");
+                Helper.setFehlerMeldung("No record found. No automatic catalogue request possible.");
+                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.ERROR,
+                        "No record found. No automatic catalogue request possible.");
+                return PluginReturnValue.ERROR;
+            }
+        }
+        
         // if structure subelements shall be kept, merge old and new fileformat, otherwise just write the new one
         try {
             if (configMergeRecords) {
@@ -284,10 +325,12 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         prefs = process.getRegelsatz().getPreferences();
 
         SubnodeConfiguration myconfig = ConfigPlugins.getProjectAndStepConfig(title, step);
-        configCatalogue = myconfig.getString("catalogue", "GBV");
-        configCatalogueField = myconfig.getString("catalogueField", "12");
-        configCatalogueId = myconfig.getString("catalogueIdentifier", "-");
+        configCatalogue = myconfig.getString("catalogue", "GBV").trim();
+        configCatalogueField = myconfig.getString("catalogueField", "12").trim();
+        configCatalogueId = myconfig.getString("catalogueIdentifier", "-").trim();
         configMergeRecords = myconfig.getBoolean("mergeRecords", false);
+        configIgnoreRequestIssues = myconfig.getBoolean("ignoreRequestIssues", false);
+        configIgnoreMissingData = myconfig.getBoolean("ignoreMissingData", false);
         configSkipFields = Arrays.asList(myconfig.getStringArray("skipField"));
     }
 

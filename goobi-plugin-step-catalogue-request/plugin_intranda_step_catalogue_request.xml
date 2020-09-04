@@ -7,14 +7,15 @@
 		<project>*</project>
 		<step>*</step>
 		
-		<!-- which catalogue to use (GBV, Wiener, CBL Adlib ...) -->
+		<!-- which catalogue to use ('GBV', 'Wiener', 'CBL Adlib' ...), 
+			can use variable replacer compatible value as well, e.g. '$(meta.Catalogue)' -->
 		<catalogue>Wiener</catalogue>
 		
 		<!-- which field to use for the catalogue request (typically '12' for identifier, sometimes '1007' for barcodes -->
 		<catalogueField>12</catalogueField>
 		
 		<!-- which identifier to use for the catalogue request 
-			(use standard variable replacer compatible value here) -->
+			(use standard variable replacer compatible value here, e.g. '$(meta.CatalogIDDigital)') -->
 		<catalogueIdentifier>$(meta.CatalogIDDigital)</catalogueIdentifier>
 		
 		<!-- define if existing structure subelements shall be kept (true), 

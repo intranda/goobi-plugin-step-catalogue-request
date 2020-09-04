@@ -21,6 +21,7 @@ import org.goobi.production.plugin.interfaces.IStepPluginVersion2;
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.VariableReplacer;
+import de.sub.goobi.helper.exceptions.ImportPluginException;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
 import de.unigoettingen.sub.search.opac.ConfigOpacCatalogue;
 import lombok.Data;
@@ -104,8 +105,24 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         // request the wished catalogue with the correct identifier
         Fileformat ffNew = null;
         try {
-            ConfigOpacCatalogue coc = ConfigOpac.getInstance().getCatalogueByName(configCatalogue);
-            IOpacPlugin myImportOpac = (IOpacPlugin) PluginLoader.getPluginByTitle(PluginType.Opac, coc.getOpacType());
+        	String catalogue = replacer.replace(configCatalogue);
+        	
+        	IOpacPlugin myImportOpac = null;
+            ConfigOpacCatalogue coc = null;
+            for (ConfigOpacCatalogue configOpacCatalogue : ConfigOpac.getInstance().getAllCatalogues()) {
+                if (configOpacCatalogue.getTitle().equals(catalogue)) {
+                    myImportOpac = configOpacCatalogue.getOpacPlugin();
+                    coc = configOpacCatalogue;
+                }
+            }
+            if (myImportOpac == null) {
+            	log.error("Opac plugin for catalogue " + catalogue + " not found.");
+                Helper.setFehlerMeldung("Opac plugin for catalogue " + catalogue + " not found.");
+                return PluginReturnValue.ERROR;
+            }
+        	
+//        	ConfigOpacCatalogue coc = ConfigOpac.getInstance().getCatalogueByName(catalogue);
+//          IOpacPlugin myImportOpac = (IOpacPlugin) PluginLoader.getPluginByTitle(PluginType.Opac, coc.getOpacType());
             ffNew = myImportOpac.search(configCatalogueField, catalogueId, coc, prefs);
         } catch (Exception e) {
             log.error("Exception while requesting the catalogue", e);
@@ -126,6 +143,8 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     topstructNew = topstructNew.getAllChildren().get(0);
                 }
 
+                topstructOld.setType(topstructNew.getType());
+                
                 // run through all old metadata of main element
                 mergeMetadataRecords(topstructOld, topstructNew);
 
@@ -264,32 +283,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         process = step.getProzess();
         prefs = process.getRegelsatz().getPreferences();
 
-        String projectName = step.getProzess().getProjekt().getTitel();
-        //        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(this);
-        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
-        xmlConfig.setExpressionEngine(new XPathExpressionEngine());
-
-        SubnodeConfiguration myconfig = null;
-
-        // order of configuration is:
-        // 1.) project name and step name matches
-        // 2.) step name matches and project is *
-        // 3.) project name matches and step name is *
-        // 4.) project name and step name are *
-        try {
-            myconfig = xmlConfig.configurationAt("//config[./project = '" + projectName + "'][./step = '" + step.getTitel() + "']");
-        } catch (IllegalArgumentException e) {
-            try {
-                myconfig = xmlConfig.configurationAt("//config[./project = '*'][./step = '" + step.getTitel() + "']");
-            } catch (IllegalArgumentException e1) {
-                try {
-                    myconfig = xmlConfig.configurationAt("//config[./project = '" + projectName + "'][./step = '*']");
-                } catch (IllegalArgumentException e2) {
-                    myconfig = xmlConfig.configurationAt("//config[./project = '*'][./step = '*']");
-                }
-            }
-        }
-
+        SubnodeConfiguration myconfig = ConfigPlugins.getProjectAndStepConfig(title, step);
         configCatalogue = myconfig.getString("catalogue", "GBV");
         configCatalogueField = myconfig.getString("catalogueField", "12");
         configCatalogueId = myconfig.getString("catalogueIdentifier", "-");

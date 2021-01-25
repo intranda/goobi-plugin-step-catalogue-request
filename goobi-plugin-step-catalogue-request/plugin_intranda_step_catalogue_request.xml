@@ -31,6 +31,9 @@
 			(e.g. wrong record identifier or network issues) -->
 		<ignoreRequestIssues>false</ignoreRequestIssues>
 		
+        <!-- define if children are analysed as well. If a sub element contains an identifier, the metadata will get imported as well -->
+        <analyseSubElements>false</analyseSubElements>
+                
 		<!-- if records shall be merged: which existing fields shall not be replace with new values? 
 			(use the metadatatypes from ruleset) -->
 		<skipField>TitleDocMain</skipField>

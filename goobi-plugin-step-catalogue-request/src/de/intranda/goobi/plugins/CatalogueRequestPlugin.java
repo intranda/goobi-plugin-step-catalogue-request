@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
-import org.apache.commons.configuration.XMLConfiguration;
-import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.goobi.beans.Process;
 import org.goobi.beans.Step;
 import org.goobi.production.enums.LogType;
@@ -15,20 +13,19 @@ import org.goobi.production.enums.PluginGuiType;
 import org.goobi.production.enums.PluginReturnValue;
 import org.goobi.production.enums.PluginType;
 import org.goobi.production.enums.StepReturnValue;
-import org.goobi.production.plugin.PluginLoader;
 import org.goobi.production.plugin.interfaces.IOpacPlugin;
 import org.goobi.production.plugin.interfaces.IStepPluginVersion2;
 
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.VariableReplacer;
-import de.sub.goobi.helper.exceptions.ImportPluginException;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
 import de.unigoettingen.sub.search.opac.ConfigOpacCatalogue;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.log4j.Log4j;
 import net.xeoh.plugins.base.annotations.PluginImplementation;
+import ugh.dl.Corporate;
 import ugh.dl.DigitalDocument;
 import ugh.dl.DocStruct;
 import ugh.dl.Fileformat;
@@ -37,7 +34,9 @@ import ugh.dl.MetadataGroup;
 import ugh.dl.MetadataType;
 import ugh.dl.Person;
 import ugh.dl.Prefs;
+import ugh.exceptions.IncompletePersonObjectException;
 import ugh.exceptions.MetadataTypeNotAllowedException;
+import ugh.exceptions.PreferencesException;
 
 @PluginImplementation
 @Log4j
@@ -61,6 +60,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     private boolean configIgnoreMissingData = false;
     private boolean configIgnoreRequestIssues = false;
     private boolean configMergeRecords = false;
+    private boolean configAnalyseSubElements = false;
     private List<String> configSkipFields = null;
 
     /**
@@ -117,16 +117,17 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 return PluginReturnValue.ERROR;
             }
         }
-        
+
         log.debug("Using this value for the catalogue request: " + catalogueId);
 
         // request the wished catalogue with the correct identifier
         Fileformat ffNew = null;
+        IOpacPlugin myImportOpac = null;
+        ConfigOpacCatalogue coc = null;
+
         try {
-        	String catalogue = replacer.replace(configCatalogue);
-        	
-        	IOpacPlugin myImportOpac = null;
-            ConfigOpacCatalogue coc = null;
+            String catalogue = replacer.replace(configCatalogue);
+
             for (ConfigOpacCatalogue configOpacCatalogue : ConfigOpac.getInstance().getAllCatalogues()) {
                 if (configOpacCatalogue.getTitle().equals(catalogue)) {
                     myImportOpac = configOpacCatalogue.getOpacPlugin();
@@ -135,7 +136,8 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             }
             if (myImportOpac == null) {
                 if (configIgnoreMissingData) {
-                    log.debug("Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible. Move on with workflow.");
+                    log.debug(
+                            "Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible. Move on with workflow.");
                     Helper.setMeldung("No catalogue identifier found. No automatic catalogue request possible.");
                     Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.INFO,
                             "Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible. Move on with workflow.");
@@ -165,12 +167,11 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             } else {
                 log.error("No record found. No automatic catalogue request possible.");
                 Helper.setFehlerMeldung("No record found. No automatic catalogue request possible.");
-                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.ERROR,
-                        "No record found. No automatic catalogue request possible.");
+                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.ERROR, "No record found. No automatic catalogue request possible.");
                 return PluginReturnValue.ERROR;
             }
         }
-        
+
         // if structure subelements shall be kept, merge old and new fileformat, otherwise just write the new one
         try {
             if (configMergeRecords) {
@@ -185,7 +186,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 }
 
                 topstructOld.setType(topstructNew.getType());
-                
+
                 // run through all old metadata of main element
                 mergeMetadataRecords(topstructOld, topstructNew);
 
@@ -197,6 +198,21 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 // replace metadata of physical element
                 if (physOld != null && physOld != null) {
                     mergeMetadataRecords(physOld, physNew);
+                }
+
+                if (configAnalyseSubElements) {
+                    List<DocStruct> dsl = topstructOld.getAllChildren();
+                    if (dsl != null) {
+                        MetadataType type = prefs.getMetadataTypeByName(configCatalogueId.replace("$", "")
+                                .replace("meta.", "")
+                                .replace("(", "")
+                                .replace("{", "")
+                                .replace("}", "")
+                                .replace(")", ""));
+                        for (DocStruct ds : dsl) {
+                            getMetadataForChild(configSkipFields, prefs, myImportOpac, coc, type, ds);
+                        }
+                    }
                 }
 
                 // then write the updated old file format
@@ -247,7 +263,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         if (docstructNew.getAllMetadata() != null) {
             for (Metadata md : docstructNew.getAllMetadata()) {
                 if (!configSkipFields.contains(md.getType().getName())) {
-                    Metadata newmetadata = new Metadata(md.getType()) ;
+                    Metadata newmetadata = new Metadata(md.getType());
                     newmetadata.setValue(md.getValue());
                     docstructOld.addMetadata(newmetadata);
                 }
@@ -269,6 +285,34 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             for (Person pd : docstructNew.getAllPersons()) {
                 if (!configSkipFields.contains(pd.getType().getName())) {
                     docstructOld.addPerson(pd);
+                }
+            }
+        }
+
+        // corporates
+        List<Corporate> allCorporates = new ArrayList<>();
+        if (docstructOld.getAllCorporates() != null) {
+            allCorporates = new ArrayList<>(docstructOld.getAllCorporates());
+        }
+        for (Corporate corporate : allCorporates) {
+            if (!configSkipFields.contains(corporate.getType().getName())) {
+                List<? extends Corporate> remove = docstructOld.getAllCorporatesByType(corporate.getType());
+                if (remove != null) {
+                    for (Corporate pdRm : remove) {
+                        docstructOld.removeCorporate(pdRm);
+                    }
+                }
+            }
+        }
+        if (docstructNew.getAllCorporates() != null) {
+            // now add the new persons to the old topstruct
+            for (Corporate pd : docstructNew.getAllCorporates()) {
+                if (!configSkipFields.contains(pd.getType().getName())) {
+                    try {
+                        docstructOld.addCorporate(pd);
+                    } catch (MetadataTypeNotAllowedException | IncompletePersonObjectException e) {
+                        // ignore metadata not allowed errors
+                    }
                 }
             }
         }
@@ -329,6 +373,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         configCatalogueField = myconfig.getString("catalogueField", "12").trim();
         configCatalogueId = myconfig.getString("catalogueIdentifier", "-").trim();
         configMergeRecords = myconfig.getBoolean("mergeRecords", false);
+        configAnalyseSubElements = myconfig.getBoolean("analyseSubElements", false);
         configIgnoreRequestIssues = myconfig.getBoolean("ignoreRequestIssues", false);
         configIgnoreMissingData = myconfig.getBoolean("ignoreMissingData", false);
         configSkipFields = Arrays.asList(myconfig.getStringArray("skipField"));
@@ -371,5 +416,21 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         }
 
         return "";
+    }
+
+    private void getMetadataForChild(List<String> configSkipFields, Prefs prefs, IOpacPlugin myImportOpac, ConfigOpacCatalogue coc, MetadataType type,
+            DocStruct ds) throws Exception, PreferencesException {
+        List<? extends Metadata> identifierList = ds.getAllMetadataByType(type);
+        if (identifierList != null && !identifierList.isEmpty()) {
+            String identifier = identifierList.get(0).getValue();
+            Fileformat ff = myImportOpac.search("12", identifier, coc, prefs);
+            mergeMetadataRecords(ds, ff.getDigitalDocument().getLogicalDocStruct());
+        }
+        List<DocStruct> children = ds.getAllChildren();
+        if (children != null && !children.isEmpty()) {
+            for (DocStruct child : children) {
+                getMetadataForChild(configSkipFields, prefs, myImportOpac, coc, type, child);
+            }
+        }
     }
 }

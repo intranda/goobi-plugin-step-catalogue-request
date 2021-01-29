@@ -184,8 +184,8 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     anchorNew = topstructNew;
                     topstructNew = topstructNew.getAllChildren().get(0);
                 }
-
-                topstructOld.setType(topstructNew.getType());
+                // uncommented doctype change for adw
+                // topstructOld.setType(topstructNew.getType());
 
                 // run through all old metadata of main element
                 mergeMetadataRecords(topstructOld, topstructNew);

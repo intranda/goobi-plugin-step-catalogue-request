@@ -2,45 +2,39 @@
 <config_plugin>
 
 	<config>
-	
+
 		<!-- which projects to use for (can be more then one, otherwise use *) -->
 		<project>*</project>
 		<step>*</step>
-		
-		<!-- which catalogue to use ('GBV', 'Wiener', 'CBL Adlib' ...), 
-			can use variable replacer compatible value as well, e.g. '$(meta.Catalogue)' -->
+
+		<!-- which catalogue to use ('GBV', 'Wiener', 'CBL Adlib' ...), can use variable replacer compatible value as well, e.g. '$(meta.Catalogue)' -->
 		<catalogue>Wiener</catalogue>
-		
+
 		<!-- which field to use for the catalogue request (typically '12' for identifier, sometimes '1007' for barcodes -->
 		<catalogueField>12</catalogueField>
-		
-		<!-- which identifier to use for the catalogue request 
-			(use standard variable replacer compatible value here, e.g. '$(meta.CatalogIDDigital)') -->
+
+		<!-- which identifier to use for the catalogue request (use standard variable replacer compatible value here, e.g. '$(meta.CatalogIDDigital)') -->
 		<catalogueIdentifier>$(meta.CatalogIDDigital)</catalogueIdentifier>
-		
-		<!-- define if existing structure subelements shall be kept (true), 
-			otherwise a complete new mets file is created and overwrites the existing one (false) -->
+
+		<!-- define if existing structure subelements shall be kept (true), otherwise a complete new mets file is created and overwrites the existing one (false) -->
 		<mergeRecords>true</mergeRecords>
-		
-		<!-- define here if the catalogue request shall simply be skipped in case of 
-			missing catalogue plugin or missing catalogue identifier; if set to true the 
-			plugin will respond with an error status in case of missing information -->
+
+		<!-- define here if the catalogue request shall simply be skipped in case of missing catalogue plugin or missing catalogue identifier; if set to true the plugin will respond with an error status in case 
+			of missing information -->
 		<ignoreMissingData>false</ignoreMissingData>
-		
-		<!-- define here if the catalogue request shall be skipped in case of request issues 
-			(e.g. wrong record identifier or network issues) -->
+
+		<!-- define here if the catalogue request shall be skipped in case of request issues (e.g. wrong record identifier or network issues) -->
 		<ignoreRequestIssues>false</ignoreRequestIssues>
-		
-        <!-- define if children are analysed as well. If a sub element contains an identifier, the metadata will get imported as well -->
-        <analyseSubElements>false</analyseSubElements>
-                
-		<!-- if records shall be merged: which existing fields shall not be replace with new values? 
-			(use the metadatatypes from ruleset) -->
+
+		<!-- define if children are analysed as well. If a sub element contains an identifier, the metadata will get imported as well -->
+		<analyseSubElements>false</analyseSubElements>
+
+		<!-- if records shall be merged: which existing fields shall not be replace with new values? (use the metadatatypes from ruleset) -->
 		<skipField>TitleDocMain</skipField>
 		<skipField>CatalogIDDigital</skipField>
 		<skipField>DocLanguage</skipField>
-        <skipField>_urn</skipField>
-        <skipField>_representative</skipField>
-	</config>	
+		<skipField>_urn</skipField>
+		<skipField>_representative</skipField>
+	</config>
 
 </config_plugin>

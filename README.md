@@ -2,7 +2,7 @@
 
 <img src="https://goobi.io/wp-content/uploads/logo_goobi_plugin.png" align="right" style="margin:0 0 20px 20px;" alt="Plugin for Goobi workflow" width="175" height="109">
 
-This is the Goobi plug-in to automatically request a catalogue to import data from.
+This is the Goobi plug-in to automatically request a catalogue for an existing Goobi process to updated the metadata.
 
 This is a plugin for Goobi workflow, the open source workflow tracking software for digitisation projects. More information about Goobi workflow is available under https://goobi.io. If you want to get in touch with the user community simply go to https://community.goobi.io.
 
@@ -15,8 +15,8 @@ Detail | Description
 **Plugin identifier**       | intranda_step_catalogue_request
 **Plugin type**             | Step plugin
 **Licence**                 | GPL 2.0 or newer  
-**Documentation (German)**  | -
-**Documentation (English)** | -
+**Documentation (German)**  | https://docs.goobi.io/goobi-workflow-plugins-de/step/intranda_step_catalogue_request
+**Documentation (English)** | https://docs.goobi.io/goobi-workflow-plugins-en/step/intranda_step_catalogue_request
 
 ## Goobi details
 

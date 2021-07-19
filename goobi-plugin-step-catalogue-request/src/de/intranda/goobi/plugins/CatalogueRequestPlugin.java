@@ -205,6 +205,8 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     if (dsl != null) {
                         MetadataType type = prefs.getMetadataTypeByName(configCatalogueId.replace("$", "")
                                 .replace("meta.", "")
+                                .replace("topstruct.", "")
+                                .replace("firstchild.", "")
                                 .replace("(", "")
                                 .replace("{", "")
                                 .replace("}", "")

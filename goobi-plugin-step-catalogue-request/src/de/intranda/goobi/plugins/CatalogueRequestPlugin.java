@@ -1,13 +1,19 @@
 package de.intranda.goobi.plugins;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.SubnodeConfiguration;
+import org.apache.commons.lang.StringUtils;
 import org.goobi.beans.Process;
+import org.goobi.beans.Processproperty;
 import org.goobi.beans.Step;
+import org.goobi.production.cli.helper.StringPair;
 import org.goobi.production.enums.LogType;
 import org.goobi.production.enums.PluginGuiType;
 import org.goobi.production.enums.PluginReturnValue;
@@ -23,7 +29,7 @@ import de.unigoettingen.sub.search.opac.ConfigOpac;
 import de.unigoettingen.sub.search.opac.ConfigOpacCatalogue;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.extern.log4j.Log4j;
+import lombok.extern.log4j.Log4j2;
 import net.xeoh.plugins.base.annotations.PluginImplementation;
 import ugh.dl.Corporate;
 import ugh.dl.DigitalDocument;
@@ -39,7 +45,7 @@ import ugh.exceptions.MetadataTypeNotAllowedException;
 import ugh.exceptions.PreferencesException;
 
 @PluginImplementation
-@Log4j
+@Log4j2
 @EqualsAndHashCode(callSuper = false)
 public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
@@ -55,21 +61,22 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     protected Prefs prefs;
 
     protected String configCatalogue = "";
-    protected String configCatalogueField = "";
-    protected String configCatalogueId = "";
+    //    protected String configCatalogueField1 = "";
+    //    protected String configCatalogueId1 = "";
     private boolean configIgnoreMissingData = false;
     private boolean configIgnoreRequestIssues = false;
     private boolean configMergeRecords = false;
     private boolean configAnalyseSubElements = false;
     private List<String> configSkipFields = null;
 
+    private List<StringPair> configuredFields;
+
     /**
      * run this plugin and execute the catalogue update
      */
     @Override
     public PluginReturnValue run() {
-        log.debug("Starting catalogue request using catalogue: " + configCatalogue + " in field " + configCatalogueField + " with identifier "
-                + configCatalogueId);
+        log.debug("Starting catalogue request using catalogue: {} for process {}", configCatalogue, process.getTitel());
 
         // first read the original METS file for the process
         Fileformat ffOld = null;
@@ -101,8 +108,16 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
         // create a VariableReplacer to transform the identifier field from the configuration into a real value
         VariableReplacer replacer = new VariableReplacer(dd, prefs, step.getProzess(), step);
-        String catalogueId = replacer.replace(configCatalogueId);
-        if (catalogueId.isEmpty()) {
+        List<StringPair> valueList = new ArrayList<>(configuredFields.size());
+        for (StringPair entry : configuredFields) {
+            String value = replacer.replace(entry.getTwo());
+            if (StringUtils.isNotBlank(value)) {
+                valueList.add(new StringPair(entry.getOne(), value));
+                log.debug("Using field {} and value {} for the catalogue request", entry.getOne(), value);
+            }
+        }
+
+        if (valueList.isEmpty()) {
             if (configIgnoreMissingData) {
                 log.debug("No catalogue identifier found. No automatic catalogue request possible. Move on with workflow.");
                 Helper.setMeldung("No catalogue identifier found. No automatic catalogue request possible.");
@@ -118,7 +133,15 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             }
         }
 
-        log.debug("Using this value for the catalogue request: " + catalogueId);
+        String processTemplateName = "";
+        List<Processproperty> properties = process.getEigenschaften();
+        if (properties != null) {
+            for (Processproperty pp : properties) {
+                if ("Template".equals(pp.getTitel())) {
+                    processTemplateName = pp.getWert();
+                }
+            }
+        }
 
         // request the wished catalogue with the correct identifier
         Fileformat ffNew = null;
@@ -127,8 +150,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
         try {
             String catalogue = replacer.replace(configCatalogue);
-
-            for (ConfigOpacCatalogue configOpacCatalogue : ConfigOpac.getInstance().getAllCatalogues()) {
+            for (ConfigOpacCatalogue configOpacCatalogue : ConfigOpac.getInstance().getAllCatalogues(processTemplateName)) {
                 if (configOpacCatalogue.getTitle().equals(catalogue)) {
                     myImportOpac = configOpacCatalogue.getOpacPlugin();
                     coc = configOpacCatalogue;
@@ -150,7 +172,71 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     return PluginReturnValue.ERROR;
                 }
             }
-            ffNew = myImportOpac.search(configCatalogueField, catalogueId, coc, prefs);
+            if (myImportOpac.getTitle().equals("intranda_opac_json")) {
+
+                /**
+                JsonOpacPlugin jsonOpacPlugin = (JsonOpacPlugin) myImportOpac;
+                de.intranda.goobi.plugins.util.Config jsonOpacConfig = jsonOpacPlugin.getConfigForOpac();
+                for (StringPair sp : valueList) {
+                    for (SearchField sf : jsonOpacConfig.getFieldList()) {
+                        if ((sf.getId()).equals(sp.getOne())) {
+                            String value = sp.getTwo();
+                            if (StringUtils.isNotBlank(value)) {
+                                sf.setText(value);
+                                sf.setSelectedField(sp.getOne());
+                            }
+                        }
+                    }
+                }
+                 Direct access to the classes is not possible because of different class loaders.
+                 Replace code above with reflections:
+                 */
+
+                try {
+                    Class<? extends Object> opacClass = myImportOpac.getClass();
+                    Method getConfigForOpac = opacClass.getMethod("getConfigForOpac");
+                    Object jsonOpacConfig = getConfigForOpac.invoke(myImportOpac);
+
+                    Class<? extends Object> jsonOpacConfigClass = jsonOpacConfig.getClass();
+
+                    Method getFieldList = jsonOpacConfigClass.getMethod("getFieldList");
+
+                    Object fieldList = getFieldList.invoke(jsonOpacConfig);
+                    List<Object> searchfields =  (List<Object>) fieldList;
+                    for (StringPair sp : valueList) {
+                        for (Object searchField : searchfields) {
+                            Class<? extends Object> searchFieldClass = searchField.getClass();
+
+                            Method getId = searchFieldClass.getMethod("getId");
+
+                            Method setText = searchFieldClass.getMethod("setText", String.class);
+                            Method setSelectedField = searchFieldClass.getMethod("setSelectedField", String.class);
+
+                            Object id = getId.invoke(searchField);
+                            if (((String) id).equals(sp.getOne())) {
+                                String value = sp.getTwo();
+                                if (StringUtils.isNotBlank(value)) {
+                                    setText.invoke(searchField, value);
+                                    setSelectedField.invoke(searchField, sp.getOne());
+                                }
+                            }
+                        }
+
+                    }
+                    Method search = opacClass.getMethod("search", String.class, String.class, ConfigOpacCatalogue.class, Prefs.class);
+
+                    ffNew = (Fileformat)  search.invoke(myImportOpac, "","",coc, prefs);
+
+                } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                    return null;
+                }
+
+
+
+
+            } else {
+                ffNew = myImportOpac.search(valueList.get(0).getOne(), valueList.get(0).getTwo(), coc, prefs);
+            }
         } catch (Exception e) {
             log.error("Exception while requesting the catalogue", e);
             Helper.setFehlerMeldung("Exception while requesting the catalogue", e);
@@ -203,7 +289,9 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 if (configAnalyseSubElements) {
                     List<DocStruct> dsl = topstructOld.getAllChildren();
                     if (dsl != null) {
-                        MetadataType type = prefs.getMetadataTypeByName(configCatalogueId.replace("$", "")
+                        MetadataType type = prefs.getMetadataTypeByName(configuredFields.get(0)
+                                .getTwo()
+                                .replace("$", "")
                                 .replace("meta.", "")
                                 .replace("topstruct.", "")
                                 .replace("firstchild.", "")
@@ -372,8 +460,17 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
         SubnodeConfiguration myconfig = ConfigPlugins.getProjectAndStepConfig(title, step);
         configCatalogue = myconfig.getString("catalogue", "GBV").trim();
-        configCatalogueField = myconfig.getString("catalogueField", "12").trim();
-        configCatalogueId = myconfig.getString("catalogueIdentifier", "-").trim();
+        configuredFields = new ArrayList<>();
+        List<HierarchicalConfiguration> fields = myconfig.configurationsAt("catalogueField");
+        for (HierarchicalConfiguration field : fields) {
+            String fieldname = field.getString("@fieldName");
+            String metadataName = field.getString("@fieldValue");
+            configuredFields.add(new StringPair(fieldname, metadataName));
+        }
+        if (configuredFields.isEmpty()) {
+            configuredFields.add(new StringPair("12", "$(meta.CatalogIDDigital)"));
+        }
+
         configMergeRecords = myconfig.getBoolean("mergeRecords", false);
         configAnalyseSubElements = myconfig.getBoolean("analyseSubElements", false);
         configIgnoreRequestIssues = myconfig.getBoolean("ignoreRequestIssues", false);

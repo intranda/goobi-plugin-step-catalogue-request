@@ -68,6 +68,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     private boolean configMergeRecords = false;
     private boolean configAnalyseSubElements = false;
     private List<String> configSkipFields = null;
+    private List<String> configIncludeFields = null;
 
     private List<StringPair> configuredFields;
 
@@ -339,7 +340,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             List<Metadata> metadataToRemove = new ArrayList<>();
             for (Metadata md : docstructOld.getAllMetadata()) {
                 // check if they should be replaced or skipped
-                if (!configSkipFields.contains(md.getType().getName())) {
+                if (configuredForUpdate(md)) {
                     metadataToRemove.add(md);
                 }
             }
@@ -352,7 +353,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         // add new metadata
         if (docstructNew.getAllMetadata() != null) {
             for (Metadata md : docstructNew.getAllMetadata()) {
-                if (!configSkipFields.contains(md.getType().getName())) {
+                if (configuredForUpdate(md)) {
                     Metadata newmetadata = new Metadata(md.getType());
                     newmetadata.setValue(md.getValue());
                     docstructOld.addMetadata(newmetadata);
@@ -362,7 +363,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         if (docstructOld.getAllPersons() != null) {
             List<Person> personsToRemove = new ArrayList<>();
             for (Person pd : docstructOld.getAllPersons()) {
-                if (!configSkipFields.contains(pd.getType().getName())) {
+                if (configuredForUpdate(pd)) {
                     personsToRemove.add(pd);
                 }
             }
@@ -373,7 +374,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         if (docstructNew.getAllPersons() != null) {
             // now add the new persons to the old topstruct
             for (Person pd : docstructNew.getAllPersons()) {
-                if (!configSkipFields.contains(pd.getType().getName())) {
+                if (configuredForUpdate(pd)) {
                     docstructOld.addPerson(pd);
                 }
             }
@@ -385,7 +386,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             allCorporates = new ArrayList<>(docstructOld.getAllCorporates());
         }
         for (Corporate corporate : allCorporates) {
-            if (!configSkipFields.contains(corporate.getType().getName())) {
+            if (configuredForUpdate(corporate)) {
                 List<? extends Corporate> remove = docstructOld.getAllCorporatesByType(corporate.getType());
                 if (remove != null) {
                     for (Corporate pdRm : remove) {
@@ -396,10 +397,10 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         }
         if (docstructNew.getAllCorporates() != null) {
             // now add the new persons to the old topstruct
-            for (Corporate pd : docstructNew.getAllCorporates()) {
-                if (!configSkipFields.contains(pd.getType().getName())) {
+            for (Corporate corporate : docstructNew.getAllCorporates()) {
+                if (configuredForUpdate(corporate)) {
                     try {
-                        docstructOld.addCorporate(pd);
+                        docstructOld.addCorporate(corporate);
                     } catch (MetadataTypeNotAllowedException | IncompletePersonObjectException e) {
                         // ignore metadata not allowed errors
                     }
@@ -412,7 +413,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
             for (MetadataGroup group : docstructOld.getAllMetadataGroups()) {
                 // check if the group should be skipped
-                if (!configSkipFields.contains(group.getType().getName())) {
+                if (configuredForUpdate(group)) {
                     // if not, remove the old groups of the type
                     groupsToRemove.add(group);
                 }
@@ -424,10 +425,26 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         // add new metadata groups
         if (docstructNew.getAllMetadataGroups() != null) {
             for (MetadataGroup newGroup : docstructNew.getAllMetadataGroups()) {
-                if (!configSkipFields.contains(newGroup.getType().getName())) {
+                if (configuredForUpdate(newGroup)) {
                     docstructOld.addMetadataGroup(newGroup);
                 }
             }
+        }
+    }
+
+    private boolean configuredForUpdate(MetadataGroup group) {
+        if(configIncludeFields != null && ! configIncludeFields.isEmpty()) {
+            return configIncludeFields.contains(group.getType().getName());
+        } else {            
+            return !configSkipFields.contains(group.getType().getName());
+        }
+    }
+
+    private boolean configuredForUpdate(Metadata md) {
+        if(configIncludeFields != null && ! configIncludeFields.isEmpty()) {
+            return configIncludeFields.contains(md.getType().getName());
+        } else {            
+            return !configSkipFields.contains(md.getType().getName());
         }
     }
 
@@ -476,6 +493,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         configIgnoreRequestIssues = myconfig.getBoolean("ignoreRequestIssues", false);
         configIgnoreMissingData = myconfig.getBoolean("ignoreMissingData", false);
         configSkipFields = Arrays.asList(myconfig.getStringArray("skipField"));
+        configIncludeFields = Arrays.asList(myconfig.getStringArray("includeField"));
     }
 
     @Override

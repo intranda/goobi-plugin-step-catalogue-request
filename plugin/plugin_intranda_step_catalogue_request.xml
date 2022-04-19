@@ -38,6 +38,11 @@
 		<skipField>DocLanguage</skipField>
 		<skipField>_urn</skipField>
 		<skipField>_representative</skipField>
+		
+		<!-- If one or more elements 'includeFields' exist, only metadata types from the list of includeField elements are updated/added -->
+		<!-- This overrides the 'skipField' settings, but itself only applies for mergeRecords='true' -->
+<!-- 		<includeField>shelfmarksource</includeField> -->
+		
 	</config>
 
 </config_plugin>

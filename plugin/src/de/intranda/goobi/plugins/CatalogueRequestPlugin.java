@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.SubnodeConfiguration;
@@ -61,14 +63,13 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     protected Prefs prefs;
 
     protected String configCatalogue = "";
-    //    protected String configCatalogueField1 = "";
-    //    protected String configCatalogueId1 = "";
     private boolean configIgnoreMissingData = false;
     private boolean configIgnoreRequestIssues = false;
     private boolean configMergeRecords = false;
     private boolean configAnalyseSubElements = false;
     private List<String> configSkipFields = null;
     private List<String> configIncludeFields = null;
+    private String configCleanupValue = "";
 
     private List<StringPair> configuredFields;
 
@@ -111,7 +112,18 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         VariableReplacer replacer = new VariableReplacer(dd, prefs, step.getProzess(), step);
         List<StringPair> valueList = new ArrayList<>(configuredFields.size());
         for (StringPair entry : configuredFields) {
+
+            // get the value and clean it up using a regular expression before it is used for the catalogue request
             String value = replacer.replace(entry.getTwo());
+            if (StringUtils.isNotBlank(configCleanupValue)) {
+                Pattern pattern = Pattern.compile(configCleanupValue);
+                Matcher matcher = pattern.matcher(value);
+                if (matcher.find()) {
+                    value = matcher.group();
+                }
+            }
+
+            // add the cleaned up value to the list
             if (StringUtils.isNotBlank(value)) {
                 valueList.add(new StringPair(entry.getOne(), value));
                 log.debug("Using field {} and value {} for the catalogue request", entry.getOne(), value);
@@ -173,24 +185,14 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     return PluginReturnValue.ERROR;
                 }
             }
-            if (myImportOpac.getTitle().equals("intranda_opac_json")) {
+            if ("intranda_opac_json".equals(myImportOpac.getTitle())) {
 
                 /**
-                JsonOpacPlugin jsonOpacPlugin = (JsonOpacPlugin) myImportOpac;
-                de.intranda.goobi.plugins.util.Config jsonOpacConfig = jsonOpacPlugin.getConfigForOpac();
-                for (StringPair sp : valueList) {
-                    for (SearchField sf : jsonOpacConfig.getFieldList()) {
-                        if ((sf.getId()).equals(sp.getOne())) {
-                            String value = sp.getTwo();
-                            if (StringUtils.isNotBlank(value)) {
-                                sf.setText(value);
-                                sf.setSelectedField(sp.getOne());
-                            }
-                        }
-                    }
-                }
-                 Direct access to the classes is not possible because of different class loaders.
-                 Replace code above with reflections:
+                 * JsonOpacPlugin jsonOpacPlugin = (JsonOpacPlugin) myImportOpac; de.intranda.goobi.plugins.util.Config jsonOpacConfig =
+                 * jsonOpacPlugin.getConfigForOpac(); for (StringPair sp : valueList) { for (SearchField sf : jsonOpacConfig.getFieldList()) { if
+                 * ((sf.getId()).equals(sp.getOne())) { String value = sp.getTwo(); if (StringUtils.isNotBlank(value)) { sf.setText(value);
+                 * sf.setSelectedField(sp.getOne()); } } } } Direct access to the classes is not possible because of different class loaders. Replace
+                 * code above with reflections:
                  */
 
                 try {
@@ -203,7 +205,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     Method getFieldList = jsonOpacConfigClass.getMethod("getFieldList");
 
                     Object fieldList = getFieldList.invoke(jsonOpacConfig);
-                    List<Object> searchfields =  (List<Object>) fieldList;
+                    List<Object> searchfields = (List<Object>) fieldList;
                     for (StringPair sp : valueList) {
                         for (Object searchField : searchfields) {
                             Class<? extends Object> searchFieldClass = searchField.getClass();
@@ -226,14 +228,11 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     }
                     Method search = opacClass.getMethod("search", String.class, String.class, ConfigOpacCatalogue.class, Prefs.class);
 
-                    ffNew = (Fileformat)  search.invoke(myImportOpac, "","",coc, prefs);
+                    ffNew = (Fileformat) search.invoke(myImportOpac, "", "", coc, prefs);
 
                 } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                     return null;
                 }
-
-
-
 
             } else {
                 ffNew = myImportOpac.search(valueList.get(0).getOne(), valueList.get(0).getTwo(), coc, prefs);
@@ -433,17 +432,17 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     }
 
     private boolean configuredForUpdate(MetadataGroup group) {
-        if(configIncludeFields != null && ! configIncludeFields.isEmpty()) {
+        if (configIncludeFields != null && !configIncludeFields.isEmpty()) {
             return configIncludeFields.contains(group.getType().getName());
-        } else {            
+        } else {
             return !configSkipFields.contains(group.getType().getName());
         }
     }
 
     private boolean configuredForUpdate(Metadata md) {
-        if(configIncludeFields != null && ! configIncludeFields.isEmpty()) {
+        if (configIncludeFields != null && !configIncludeFields.isEmpty()) {
             return configIncludeFields.contains(md.getType().getName());
-        } else {            
+        } else {
             return !configSkipFields.contains(md.getType().getName());
         }
     }
@@ -454,7 +453,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     @Override
     public boolean execute() {
         PluginReturnValue check = run();
-        if (check.equals(PluginReturnValue.FINISH)) {
+        if (PluginReturnValue.FINISH.equals(check)) {
             return true;
         }
         return false;
@@ -488,6 +487,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             configuredFields.add(new StringPair("12", "$(meta.CatalogIDDigital)"));
         }
 
+        configCleanupValue = myconfig.getString("cleanupValue", "");
         configMergeRecords = myconfig.getBoolean("mergeRecords", false);
         configAnalyseSubElements = myconfig.getBoolean("analyseSubElements", false);
         configIgnoreRequestIssues = myconfig.getBoolean("ignoreRequestIssues", false);
@@ -548,6 +548,18 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             for (DocStruct child : children) {
                 getMetadataForChild(configSkipFields, prefs, myImportOpac, coc, type, child);
             }
+        }
+    }
+
+    public static void main(String[] args) {
+        String value = "steffecn1976";
+
+        System.out.println("start");
+        Pattern pattern = Pattern.compile("[^_]*$");
+        Matcher matcher = pattern.matcher(value);
+        if (matcher.find()) {
+            value = matcher.group();
+            System.out.println("--> " + value);
         }
     }
 }

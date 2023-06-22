@@ -18,6 +18,10 @@
 
         <catalogueField fieldName="12" fieldValue="$(meta.CatalogIDDigital)" />
 
+		<!-- the parameter 'cleanupValue' allows to define a regex to clean up the fieldValues content before they are used to request the catalogue -->
+		<!-- sample regex to get everything after an underscore character: [^_]*$ -->
+		<!-- sample regex to get everything before an underscore character: ^[^_]* -->
+		<cleanupValue>[^_]*$</cleanupValue>
 
 		<!-- define if existing structure subelements shall be kept (true), otherwise a complete new mets file is created and overwrites the existing one (false) -->
 		<mergeRecords>true</mergeRecords>

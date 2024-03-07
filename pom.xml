@@ -7,7 +7,7 @@
     <relativePath />
   </parent>
   <groupId>io.goobi.workflow.plugin</groupId>
-  <artifactId>plugin-step-catalogue_request</artifactId>
+  <artifactId>plugin-step-catalogue-request</artifactId>
   <packaging>pom</packaging>
   <modules>
     <module>module-base</module>

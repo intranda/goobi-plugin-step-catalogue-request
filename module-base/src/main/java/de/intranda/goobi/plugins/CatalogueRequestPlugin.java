@@ -44,12 +44,13 @@ import ugh.dl.Person;
 import ugh.dl.Prefs;
 import ugh.exceptions.IncompletePersonObjectException;
 import ugh.exceptions.MetadataTypeNotAllowedException;
-import ugh.exceptions.PreferencesException;
 
 @PluginImplementation
 @Log4j2
 @EqualsAndHashCode(callSuper = false)
 public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
+
+    private static final long serialVersionUID = 8549061936886878878L;
 
     private PluginGuiType pluginGuiType = PluginGuiType.NONE;
     private PluginType type = PluginType.Step;
@@ -134,13 +135,13 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             if (configIgnoreMissingData) {
                 log.debug("No catalogue identifier found. No automatic catalogue request possible. Move on with workflow.");
                 Helper.setMeldung("No catalogue identifier found. No automatic catalogue request possible.");
-                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.INFO,
+                Helper.addMessageToProcessJournal(step.getProzess().getId(), LogType.INFO,
                         "No catalogue identifier found. No automatic catalogue request possible. Move on with workflow.");
                 return PluginReturnValue.FINISH;
             } else {
                 log.error("No catalogue identifier found. No automatic catalogue request possible.");
                 Helper.setFehlerMeldung("No catalogue identifier found. No automatic catalogue request possible.");
-                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.ERROR,
+                Helper.addMessageToProcessJournal(step.getProzess().getId(), LogType.ERROR,
                         "No catalogue identifier found. No automatic catalogue request possible.");
                 return PluginReturnValue.ERROR;
             }
@@ -174,65 +175,20 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                     log.debug(
                             "Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible. Move on with workflow.");
                     Helper.setMeldung("No catalogue identifier found. No automatic catalogue request possible.");
-                    Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.INFO,
+                    Helper.addMessageToProcessJournal(step.getProzess().getId(), LogType.INFO,
                             "Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible. Move on with workflow.");
                     return PluginReturnValue.FINISH;
                 } else {
                     log.error("Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible.");
                     Helper.setFehlerMeldung("No catalogue identifier found. No automatic catalogue request possible.");
-                    Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.ERROR,
+                    Helper.addMessageToProcessJournal(step.getProzess().getId(), LogType.ERROR,
                             "Opac plugin for catalogue " + catalogue + " not found. No automatic catalogue request possible.");
                     return PluginReturnValue.ERROR;
                 }
             }
             if ("intranda_opac_json".equals(myImportOpac.getTitle())) {
 
-                /**
-                 * JsonOpacPlugin jsonOpacPlugin = (JsonOpacPlugin) myImportOpac; de.intranda.goobi.plugins.util.Config jsonOpacConfig =
-                 * jsonOpacPlugin.getConfigForOpac(); for (StringPair sp : valueList) { for (SearchField sf : jsonOpacConfig.getFieldList()) { if
-                 * ((sf.getId()).equals(sp.getOne())) { String value = sp.getTwo(); if (StringUtils.isNotBlank(value)) { sf.setText(value);
-                 * sf.setSelectedField(sp.getOne()); } } } } Direct access to the classes is not possible because of different class loaders. Replace
-                 * code above with reflections:
-                 */
-
-                try {
-                    Class<? extends Object> opacClass = myImportOpac.getClass();
-                    Method getConfigForOpac = opacClass.getMethod("getConfigForOpac");
-                    Object jsonOpacConfig = getConfigForOpac.invoke(myImportOpac);
-
-                    Class<? extends Object> jsonOpacConfigClass = jsonOpacConfig.getClass();
-
-                    Method getFieldList = jsonOpacConfigClass.getMethod("getFieldList");
-
-                    Object fieldList = getFieldList.invoke(jsonOpacConfig);
-                    List<Object> searchfields = (List<Object>) fieldList;
-                    for (StringPair sp : valueList) {
-                        for (Object searchField : searchfields) {
-                            Class<? extends Object> searchFieldClass = searchField.getClass();
-
-                            Method getId = searchFieldClass.getMethod("getId");
-
-                            Method setText = searchFieldClass.getMethod("setText", String.class);
-                            Method setSelectedField = searchFieldClass.getMethod("setSelectedField", String.class);
-
-                            Object id = getId.invoke(searchField);
-                            if (((String) id).equals(sp.getOne())) {
-                                String value = sp.getTwo();
-                                if (StringUtils.isNotBlank(value)) {
-                                    setText.invoke(searchField, value);
-                                    setSelectedField.invoke(searchField, sp.getOne());
-                                }
-                            }
-                        }
-
-                    }
-                    Method search = opacClass.getMethod("search", String.class, String.class, ConfigOpacCatalogue.class, Prefs.class);
-
-                    ffNew = (Fileformat) search.invoke(myImportOpac, "", "", coc, prefs);
-
-                } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                    return null;
-                }
+                ffNew = opacSearch(valueList, myImportOpac, coc);
 
             } else {
                 ffNew = myImportOpac.search(valueList.get(0).getOne(), valueList.get(0).getTwo(), coc, prefs);
@@ -247,13 +203,14 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
             if (configIgnoreRequestIssues) {
                 log.debug("No record found. No automatic catalogue request possible. Move on with workflow.");
                 Helper.setMeldung("No record found. No automatic catalogue request possible.");
-                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.INFO,
+                Helper.addMessageToProcessJournal(step.getProzess().getId(), LogType.INFO,
                         "No record found. No automatic catalogue request possible. Move on with workflow.");
                 return PluginReturnValue.FINISH;
             } else {
                 log.error("No record found. No automatic catalogue request possible.");
                 Helper.setFehlerMeldung("No record found. No automatic catalogue request possible.");
-                Helper.addMessageToProcessLog(step.getProzess().getId(), LogType.ERROR, "No record found. No automatic catalogue request possible.");
+                Helper.addMessageToProcessJournal(step.getProzess().getId(), LogType.ERROR,
+                        "No record found. No automatic catalogue request possible.");
                 return PluginReturnValue.ERROR;
             }
         }
@@ -282,14 +239,14 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                 }
 
                 // replace metadata of physical element
-                if (physOld != null && physOld != null) {
+                if (physOld != null) {
                     mergeMetadataRecords(physOld, physNew);
                 }
 
                 if (configAnalyseSubElements) {
                     List<DocStruct> dsl = topstructOld.getAllChildren();
                     if (dsl != null) {
-                        MetadataType type = prefs.getMetadataTypeByName(configuredFields.get(0)
+                        MetadataType metadataType = prefs.getMetadataTypeByName(configuredFields.get(0)
                                 .getTwo()
                                 .replace("$", "")
                                 .replace("meta.", "")
@@ -300,18 +257,16 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
                                 .replace("}", "")
                                 .replace(")", ""));
                         for (DocStruct ds : dsl) {
-                            getMetadataForChild(configSkipFields, prefs, myImportOpac, coc, type, ds);
+                            getMetadataForChild(configSkipFields, prefs, myImportOpac, coc, metadataType, ds);
                         }
                     }
                 }
 
                 // then write the updated old file format
-                // ffOld.write(p.getMetadataFilePath());
                 process.writeMetadataFile(ffOld);
 
             } else {
                 // just write the new one and don't merge any data
-                // ffNew.write(p.getMetadataFilePath());
                 process.writeMetadataFile(ffNew);
             }
         } catch (Exception e) {
@@ -323,6 +278,51 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         // everything finished, exit plugin
         log.debug("Finished with catalogue request");
         return PluginReturnValue.FINISH;
+    }
+
+    private Fileformat opacSearch(List<StringPair> valueList, IOpacPlugin myImportOpac, ConfigOpacCatalogue coc)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        try {
+            Fileformat ffNew;
+            Class<? extends Object> opacClass = myImportOpac.getClass();
+            Method getConfigForOpac = opacClass.getMethod("getConfigForOpac");
+            Object jsonOpacConfig = getConfigForOpac.invoke(myImportOpac);
+
+            Class<? extends Object> jsonOpacConfigClass = jsonOpacConfig.getClass();
+
+            Method getFieldList = jsonOpacConfigClass.getMethod("getFieldList");
+
+            Object fieldList = getFieldList.invoke(jsonOpacConfig);
+            @SuppressWarnings("unchecked")
+            List<Object> searchfields = (List<Object>) fieldList;
+            for (StringPair sp : valueList) {
+                for (Object searchField : searchfields) {
+                    Class<? extends Object> searchFieldClass = searchField.getClass();
+
+                    Method getId = searchFieldClass.getMethod("getId");
+
+                    Method setText = searchFieldClass.getMethod("setText", String.class);
+                    Method setSelectedField = searchFieldClass.getMethod("setSelectedField", String.class);
+
+                    Object id = getId.invoke(searchField);
+                    if (((String) id).equals(sp.getOne())) {
+                        String value = sp.getTwo();
+                        if (StringUtils.isNotBlank(value)) {
+                            setText.invoke(searchField, value);
+                            setSelectedField.invoke(searchField, sp.getOne());
+                        }
+                    }
+                }
+
+            }
+            Method search = opacClass.getMethod("search", String.class, String.class, ConfigOpacCatalogue.class, Prefs.class);
+
+            ffNew = (Fileformat) search.invoke(myImportOpac, "", "", coc, prefs);
+            return ffNew;
+        } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            return null;
+        }
+
     }
 
     /**
@@ -453,10 +453,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
     @Override
     public boolean execute() {
         PluginReturnValue check = run();
-        if (PluginReturnValue.FINISH.equals(check)) {
-            return true;
-        }
-        return false;
+        return PluginReturnValue.FINISH.equals(check);
     }
 
     @Override
@@ -503,7 +500,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
     @Override
     public HashMap<String, StepReturnValue> validate() {
-        return null;
+        return null; //NOSONAR
     }
 
     @Override
@@ -528,15 +525,15 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         if (docstruct == null || metadataType == null) {
             return null;
         }
-        for (Metadata md : docstruct.getAllMetadataByType(metadataType)) {
-            return md.getValue();
+        List<? extends Metadata> metadataList = docstruct.getAllMetadataByType(metadataType);
+        if (!metadataList.isEmpty()) {
+            return metadataList.get(0).getValue();
         }
-
         return "";
     }
 
     private void getMetadataForChild(List<String> configSkipFields, Prefs prefs, IOpacPlugin myImportOpac, ConfigOpacCatalogue coc, MetadataType type,
-            DocStruct ds) throws Exception, PreferencesException {
+            DocStruct ds) throws Exception {
         List<? extends Metadata> identifierList = ds.getAllMetadataByType(type);
         if (identifierList != null && !identifierList.isEmpty()) {
             String identifier = identifierList.get(0).getValue();
@@ -551,15 +548,4 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         }
     }
 
-    public static void main(String[] args) {
-        String value = "steffecn1976";
-
-        System.out.println("start");
-        Pattern pattern = Pattern.compile("[^_]*$");
-        Matcher matcher = pattern.matcher(value);
-        if (matcher.find()) {
-            value = matcher.group();
-            System.out.println("--> " + value);
-        }
-    }
 }

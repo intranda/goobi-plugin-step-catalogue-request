@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.goobi.beans.GoobiProperty;
 import org.goobi.beans.Process;
 import org.goobi.beans.Processproperty;
 import org.goobi.beans.Step;
@@ -148,9 +149,9 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         }
 
         String processTemplateName = "";
-        List<Processproperty> properties = process.getEigenschaften();
+        List<GoobiProperty> properties = process.getEigenschaften();
         if (properties != null) {
-            for (Processproperty pp : properties) {
+            for (GoobiProperty pp : properties) {
                 if ("Template".equals(pp.getTitel())) {
                     processTemplateName = pp.getWert();
                 }

@@ -2,10 +2,14 @@ package de.intranda.goobi.plugins;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,7 +18,6 @@ import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.goobi.beans.GoobiProperty;
 import org.goobi.beans.Process;
-import org.goobi.beans.Processproperty;
 import org.goobi.beans.Step;
 import org.goobi.production.cli.helper.StringPair;
 import org.goobi.production.enums.LogType;
@@ -23,10 +26,12 @@ import org.goobi.production.enums.PluginReturnValue;
 import org.goobi.production.enums.PluginType;
 import org.goobi.production.enums.StepReturnValue;
 import org.goobi.production.plugin.interfaces.IOpacPlugin;
+import org.goobi.production.plugin.interfaces.IOpacPluginVersion2;
 import org.goobi.production.plugin.interfaces.IStepPluginVersion2;
 
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.helper.Helper;
+import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.VariableReplacer;
 import de.unigoettingen.sub.search.opac.ConfigOpac;
 import de.unigoettingen.sub.search.opac.ConfigOpacCatalogue;
@@ -152,8 +157,8 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         List<GoobiProperty> properties = process.getEigenschaften();
         if (properties != null) {
             for (GoobiProperty pp : properties) {
-                if ("Template".equals(pp.getTitel())) {
-                    processTemplateName = pp.getWert();
+                if ("Template".equals(pp.getPropertyName())) {
+                    processTemplateName = pp.getPropertyValue();
                 }
             }
         }
@@ -193,6 +198,28 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
 
             } else {
                 ffNew = myImportOpac.search(valueList.get(0).getOne(), valueList.get(0).getTwo(), coc, prefs);
+                if (myImportOpac instanceof IOpacPluginVersion2) {
+                    IOpacPluginVersion2 opacPluginV2 = (IOpacPluginVersion2) myImportOpac;
+                    // check if the plugin created files
+                    if (opacPluginV2.getRecordPathList() != null) {
+                        for (Path r : opacPluginV2.getRecordPathList()) {
+                            // if this is the case, move the files to the import/ folder
+                            Path destination = Paths.get(process.getImportDirectory(), r.getFileName().toString());
+                            StorageProvider.getInstance().createDirectories(destination.getParent());
+                            StorageProvider.getInstance().move(r, destination);
+                        }
+                    }
+                    // check if the plugin provides the data as string
+                    if (opacPluginV2.getRawDataAsString() != null) {
+                        // if this is the case, store it in a file in import/
+                        for (Entry<String, String> entry : opacPluginV2.getRawDataAsString().entrySet()) {
+                            Path destination = Paths.get(process.getImportDirectory(), entry.getKey().replaceAll("\\W", "_"));
+                            StorageProvider.getInstance().createDirectories(destination.getParent());
+                            Files.write(destination, entry.getValue().getBytes());
+                        }
+                    }
+                }
+
             }
         } catch (Exception e) {
             log.error("Exception while requesting the catalogue", e);

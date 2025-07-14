@@ -3,6 +3,6 @@
 		<exec executable="mvn">
 			<arg value="package"/>
 		</exec>
-		<copy file="target/plugin_intranda_step_catalogue_request.jar" todir="/opt/digiverso/goobi/plugins/step/"/>
+		<copy file="module-base/target/plugin-step-catalogue-request-base.jar" todir="/opt/digiverso/goobi/plugins/step/"/>
 	</target>
 </project>

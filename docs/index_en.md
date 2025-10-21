@@ -3,6 +3,10 @@ title: Catalogue Request
 identifier: intranda_step_catalogue_request
 published: true
 description: Goobi Step plugin for updating existing METS files with content from a catalogue query
+keywords:
+    - Goobi workflow
+    - Plugin
+    - Step Plugin
 ---
 ## Introduction
 This documentation describes the installation, configuration and use of the Step plugin for the catalogue query to update records in Goobi workflow.

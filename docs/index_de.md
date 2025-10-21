@@ -3,6 +3,10 @@ title: Katalogabfrage
 identifier: intranda_step_catalogue_request
 published: true
 description: Goobi Step Plugin für die Aktualisierung bestehender METS-Dateien mit Inhalten aus einer Katalogabfrage
+keywords:
+    - Goobi workflow
+    - Plugin
+    - Step Plugin
 ---
 ## Einführung
 Die vorliegende Dokumentation beschreibt die Installation, die Konfiguration und den Einsatz des Step Plugins für die Katalogabfrage zur Aktualisierung von Datensätzen in Goobi workflow.

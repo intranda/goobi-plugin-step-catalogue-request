@@ -362,7 +362,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
      * @throws MetadataTypeNotAllowedException
      */
 
-    private void mergeMetadataRecords(DocStruct docstructOld, DocStruct docstructNew) throws MetadataTypeNotAllowedException {
+    void mergeMetadataRecords(DocStruct docstructOld, DocStruct docstructNew) throws MetadataTypeNotAllowedException {
         if (docstructOld.getAllMetadata() != null) {
             List<Metadata> metadataToRemove = new ArrayList<>();
             for (Metadata md : docstructOld.getAllMetadata()) {
@@ -381,9 +381,7 @@ public @Data class CatalogueRequestPlugin implements IStepPluginVersion2 {
         if (docstructNew.getAllMetadata() != null) {
             for (Metadata md : docstructNew.getAllMetadata()) {
                 if (configuredForUpdate(md)) {
-                    Metadata newmetadata = new Metadata(md.getType());
-                    newmetadata.setValue(md.getValue());
-                    docstructOld.addMetadata(newmetadata);
+                    docstructOld.addMetadata(md);
                 }
             }
         }

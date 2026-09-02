@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mets:mets OBJID="" xsi:schemaLocation="http://www.loc.gov/standards/premis/ http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-7.xsd http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/standards/mix/ http://www.loc.gov/standards/mix/mix.xsd" xmlns:mets="http://www.loc.gov/METS/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:goobi="http://meta.goobi.org/v1.5.1/">
+   <mets:metsHdr CREATEDATE="2026-09-02T11:53:31Z">
+      <mets:agent OTHERTYPE="SOFTWARE" ROLE="CREATOR" TYPE="OTHER">
+         <mets:name>Goobi -  - 2026-08-18T15:02:43Z</mets:name>
+      </mets:agent>
+   </mets:metsHdr>
+   <mets:dmdSec ID="DMDLOG_0000">
+      <mets:mdWrap MDTYPE="MODS">
+         <mets:xmlData>
+            <mods:mods>
+               <mods:extension>
+                  <goobi:goobi>
+                     <goobi:metadata name="CatalogIDDigital">DE-611-HS-3631791</goobi:metadata>
+                     <goobi:metadata name="shelfmarksource">NL Baggesen I, 3.1.1.1, Nr. 4</goobi:metadata>
+                     <goobi:metadata authority="German ISIL- and Library Codes Agency" authorityURI="http://ld.zdb-services.de/resource/organisations/" name="PhysicalLocation" valueURI="http://ld.zdb-services.de/resource/organisations/DE-8">Universitätsbibliothek Kiel</goobi:metadata>
+                     <goobi:metadata name="TitleDocMain">Eintrag von C.E. [verm. Charitas Emilie] von Bernstorff, geb. v. Buchwald und Lotte Schiller geb. Lengefeld / Einschlagblatt mit redaktionellen Anmerkungen</goobi:metadata>
+                     <goobi:metadata name="SizeSourcePrint">1 Blatt, 1 Doppelblatt</goobi:metadata>
+                     <goobi:metadata authority="iso639-2b" authorityURI="http://id.loc.gov/vocabulary/iso639-2/" name="DocLanguage" valueURI="http://id.loc.gov/vocabulary/iso639-2/ger">ger</goobi:metadata>
+                     <goobi:metadata authority="iso639-2b" authorityURI="http://id.loc.gov/vocabulary/iso639-2/" name="DocLanguage" valueURI="http://id.loc.gov/vocabulary/iso639-2/eng">eng</goobi:metadata>
+                     <goobi:metadata name="DateOfOriginDisplay">29.07.1790-24.07.1793</goobi:metadata>
+                     <goobi:metadata name="DateOfOriginStart">1790-07-29</goobi:metadata>
+                     <goobi:metadata name="DateOfOriginEnd">1793-07-24</goobi:metadata>
+                     <goobi:metadata authority="gnd" authorityURI="https://d-nb.info/gnd/" name="PlaceOfPublication" valueURI="https://d-nb.info/gnd/4065105-8">Weimar</goobi:metadata>
+                     <goobi:metadata authority="gnd" authorityURI="https://d-nb.info/gnd/" name="PlaceOfPublication" valueURI="https://d-nb.info/gnd/4028557-1">Jena</goobi:metadata>
+                     <goobi:metadata name="TypeOfResourceCollection">yes</goobi:metadata>
+                     <goobi:metadata name="TypeOfResource">text</goobi:metadata>
+                     <goobi:metadata authority="DE-588" authorityURI="https://d-nb.info/gnd/" name="GenreType" valueURI="https://d-nb.info/gnd/4117633-9">Werk</goobi:metadata>
+                     <goobi:metadata name="GenreType">Stammbucheintragung</goobi:metadata>
+                     <goobi:metadata name="Note">Handschrift</goobi:metadata>
+                     <goobi:metadata name="Author" type="person">
+                        <goobi:lastName>Bernstorff</goobi:lastName>
+                        <goobi:firstName>C. E. von</goobi:firstName>
+                        <goobi:authorityID>DE-611</goobi:authorityID>
+                        <goobi:authorityURI>https://kalliope-verbund.info/agents/</goobi:authorityURI>
+                        <goobi:authorityValue>30116690</goobi:authorityValue>
+                        <goobi:displayName>Bernstorff, C. E. von</goobi:displayName>
+                     </goobi:metadata>
+                     <goobi:metadata name="Creator" type="person">
+                        <goobi:lastName>Schiller</goobi:lastName>
+                        <goobi:firstName>Charlotte von</goobi:firstName>
+                        <goobi:authorityID>DE-588</goobi:authorityID>
+                        <goobi:authorityURI>https://d-nb.info/gnd/</goobi:authorityURI>
+                        <goobi:authorityValue>118754971</goobi:authorityValue>
+                        <goobi:displayName>Schiller, Charlotte von</goobi:displayName>
+                     </goobi:metadata>
+                     <goobi:metadata name="Addressee" type="person">
+                        <goobi:lastName>Baggesen</goobi:lastName>
+                        <goobi:firstName>Jens</goobi:firstName>
+                        <goobi:authorityID>DE-588</goobi:authorityID>
+                        <goobi:authorityURI>https://d-nb.info/gnd/</goobi:authorityURI>
+                        <goobi:authorityValue>118505904</goobi:authorityValue>
+                        <goobi:displayName>Baggesen, Jens</goobi:displayName>
+                     </goobi:metadata>
+                     <goobi:metadata name="Author" type="person">
+                        <goobi:lastName>Baggesen</goobi:lastName>
+                        <goobi:firstName>Jens</goobi:firstName>
+                        <goobi:authorityID>DE-588</goobi:authorityID>
+                        <goobi:authorityURI>https://d-nb.info/gnd/</goobi:authorityURI>
+                        <goobi:authorityValue>118505904</goobi:authorityValue>
+                        <goobi:displayName>Baggesen, Jens</goobi:displayName>
+                     </goobi:metadata>
+                  </goobi:goobi>
+               </mods:extension>
+            </mods:mods>
+         </mets:xmlData>
+      </mets:mdWrap>
+   </mets:dmdSec>
+   <mets:dmdSec ID="DMDPHYS_0000">
+      <mets:mdWrap MDTYPE="MODS">
+         <mets:xmlData>
+            <mods:mods>
+               <mods:extension>
+                  <goobi:goobi>
+                     <goobi:metadata name="shelfmarksource">NL Baggesen I, 3.1.1.1, Nr. 4</goobi:metadata>
+                     <goobi:metadata authority="German ISIL- and Library Codes Agency" authorityURI="http://ld.zdb-services.de/resource/organisations/" name="PhysicalLocation" valueURI="http://ld.zdb-services.de/resource/organisations/DE-8">Universitätsbibliothek Kiel</goobi:metadata>
+                  </goobi:goobi>
+               </mods:extension>
+            </mods:mods>
+         </mets:xmlData>
+      </mets:mdWrap>
+   </mets:dmdSec>
+   <mets:structMap TYPE="LOGICAL">
+      <mets:div DMDID="DMDLOG_0000" ID="LOG_0000" TYPE="KalliopeManuscript"/>
+   </mets:structMap>
+   <mets:structMap TYPE="PHYSICAL">
+      <mets:div DMDID="DMDPHYS_0000" ID="PHYS_0000" TYPE="BoundBook"/>
+   </mets:structMap>
+</mets:mets>
